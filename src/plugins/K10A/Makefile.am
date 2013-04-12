@@ -21,10 +21,10 @@ libK10A_la_LIBADD   = ../../libookala/libookala.la
 libK10A_la_SOURCES = \
 	K10A.cpp		\
 	K10A.h			\
-	KClmtr.cpp		\
-	KClmtr.h		\
-	serialPort.cpp	\
-	serialPort.h
+	../../kclmtr/KClmtr.cpp		\
+	../../kclmtr/KClmtr.h		\
+	../../kclmtr/serialPort.cpp	\
+	../../kclmtr/serialPort.h
 
 
 
