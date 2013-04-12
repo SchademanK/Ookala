@@ -30,13 +30,6 @@
 #endif
 //#include <usb.h>
 
-#include "Sensor.h"
-#include "PluginChain.h"
-#include "PluginRegistry.h"
-
-#include "WxSensorPrep.h"
-
-
 #include "wx/wxprec.h"
 
 #ifdef __BORLANDC__
@@ -46,6 +39,15 @@
 #ifndef WX_PRECOMP
     #include "wx/wx.h"
 #endif
+
+#include "wxUtils.h"
+
+#include "Sensor.h"
+#include "PluginChain.h"
+#include "PluginRegistry.h"
+
+#include "WxSensorPrep.h"
+
 
 
 // ----------------------------------
@@ -157,7 +159,7 @@ Ookala::WxSensorPrep::_run(PluginChain *chain)
             case SENSOR_ACTION_DARK_READING:
                 msg     = "Please place the sensor in the dark for dark current measurement.";
                 caption = "Sensor Setup: ";
-                ret = wxMessageBox(msg, caption, wxOK | wxCANCEL | wxICON_INFORMATION);
+                ret = wxMessageBox(_S(msg), _S(caption), wxOK | wxCANCEL | wxICON_INFORMATION);
                 if (ret != wxOK) {
                     if (chain) {
                         chain->cancel();
@@ -191,7 +193,7 @@ Ookala::WxSensorPrep::_run(PluginChain *chain)
     caption = "Sensor Setup: ";
     
     printf("wxSensorPrep - trying to pop up message box\n");
-    ret = wxMessageBox(msg, caption,
+    ret = wxMessageBox(_S(msg), _S(caption),
                          wxOK | wxCANCEL | wxICON_INFORMATION);
 
     if (ret == wxOK) {

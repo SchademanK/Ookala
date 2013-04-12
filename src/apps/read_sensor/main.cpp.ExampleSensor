@@ -35,7 +35,9 @@
 #include <usb.h>
 #endif
 
-#include <Chrfuncs.h>
+// Chrfuncs.h is needed by the XRite plugins
+// and can be found in XRite's SDK
+//#include <Chrfuncs.h>
 
 #include "wx/wxprec.h"
 #ifdef __BORLANDC__
@@ -45,6 +47,9 @@
 #ifndef WX_PRECOMP
     #include "wx/wx.h"   
 #endif
+
+#include "wxUtils.h"
+
 #include <wx/cmdline.h>
 
 #include "Dict.h"
@@ -65,8 +70,8 @@ usage(int argc, char **argv)
 void
 setupParser(wxCmdLineParser &parser)
 {
-    parser.AddParam("Path to plugin files");
-    parser.AddOption("n", wxEmptyString, "Switch to color space N");
+    parser.AddParam(_("Path to plugin files"));
+    parser.AddOption(wxT("n"), wxEmptyString, _("Switch to color space N"));
 }
 
 int 
@@ -100,12 +105,12 @@ main(int argc, char **argv)
         fprintf(stderr, "Compiled for sensor: ExampleSensor\n");
     }
 
-    if (parser.Found("n", &argStr)) {
-        numReadings = atoi(argStr.c_str());
+    if (parser.Found(wxT("n"), &argStr)) {
+        numReadings = atoi(argStr.mb_str());
         if (numReadings < 1) numReadings = 1;
     }
  
-    std::string pluginDir = (std::string)parser.GetParam();
+    std::string pluginDir = (std::string)parser.GetParam().mb_str();
     std::string pluginPath;
 
     pluginPath = pluginDir + std::string("/libExampleSensor.so");

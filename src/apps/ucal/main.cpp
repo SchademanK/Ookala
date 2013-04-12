@@ -35,13 +35,6 @@
 #include <vector>
 #include <algorithm>
 
-#include "Dict.h"
-#include "DictHash.h"
-#include "DataSavior.h"
-#include "PluginChain.h"
-#include "PluginRegistry.h"
-
-
 #include "wx/wxprec.h"
 
 #ifdef __BORLANDC__
@@ -50,7 +43,17 @@
 
 #ifndef WX_PRECOMP
     #include "wx/wx.h"   
+    #include "wx/taskbar.h"   
 #endif
+
+#include "wxUtils.h"
+
+#include "Dict.h"
+#include "DictHash.h"
+#include "DataSavior.h"
+#include "PluginChain.h"
+#include "PluginRegistry.h"
+
 
 #include "wx/taskbar.h"
 #include "wx/evtloop.h"
@@ -261,7 +264,7 @@ UcalTaskbar::CreatePopupMenu()
     for (uint32_t i=0; i<mChains.size(); ++i) {
 
         if (!mChains[i]->getHidden()) {
-            menu->Append(ID_Taskbar_Run_Chain_0 + i, mChains[i]->name());
+            menu->Append(ID_Taskbar_Run_Chain_0 + i, _S(mChains[i]->name()));
 
             Connect(ID_Taskbar_Run_Chain_0 + i,
                     wxEVT_COMMAND_MENU_SELECTED, 
@@ -326,9 +329,9 @@ UcalTaskbar::onRun(wxCommandEvent &event)
     if (ret == false) {
         if (mChains[chainIdx]->wasCancelled() == false) {
 
-            wxMessageBox(std::string("Execution failed: ") + 
-                         mChains[chainIdx]->errorString(),
-                         "uCal Error",
+            wxMessageBox(_S("Execution failed: " + 
+                         mChains[chainIdx]->errorString()),
+                         _("uCal Error"),
                          wxOK | wxICON_ERROR);
 
             printf("Chain run FAILED!!!\n");
@@ -550,14 +553,14 @@ UcalApp::OnInit()
                 }
 
                 if (trayOwner == None) {
-                    int retVal = 
-                        wxMessageBox("Unable to locate system tray!\n\n"
+					const char* msg = ("Unable to locate system tray!\n\n"
                                      "If running Gnome, this usually means you "
                                      "need a notification area applet in your dock.\n\n"
                                      "If running KDE, this usually means you need"
                                      "a system tray applet in your dock.\n\n"
-                                     "Please load the necessary component or cancel.",
-                                     "uCal: No System Tray!",
+                                     "Please load the necessary component or cancel.");
+                    int retVal = 
+                        wxMessageBox(_U(msg), _("uCal: No System Tray!"),
                                       wxCANCEL | wxOK | wxICON_HAND);
                     if (retVal == wxCANCEL) {
                         XCloseDisplay(dpy);
@@ -704,15 +707,15 @@ UcalApp::parseArgs()
     parser.EnableLongOptions(true);
 
 #ifdef __linux__
-    parser.AddOption("s", "sm-client-id", "Session Management ID",
+    parser.AddOption(wxT("s"), wxT("sm-client-id"), _("Session Management ID"),
                         wxCMD_LINE_VAL_STRING, wxCMD_LINE_NEEDS_SEPARATOR);
 #endif
     
     // -l, --list -> list all chains and exit
-    parser.AddSwitch("l", "list", "List all chains found in the config");
+    parser.AddSwitch(wxT("l"), wxT("list"), _("List all chains found in the config"));
 
     // -r "chainName, --run "chainName" --> execute a chain and exit
-    parser.AddOption("r", "run", "Execute a chain and exit",
+    parser.AddOption(wxT("r"), wxT("run"), _("Execute a chain and exit"),
                          wxCMD_LINE_VAL_STRING);
 
     // Return and display usage if things go wrong.
@@ -721,16 +724,16 @@ UcalApp::parseArgs()
     }
 
 #ifdef __linux__
-    if (parser.Found("s", &stringVal)) {
-        mSessionId = strdup(stringVal.c_str());
+    if (parser.Found(wxT("s"), &stringVal)) {
+        mSessionId = strdup(stringVal.mb_str());
     }
 #endif
 
-    mListChains = parser.Found("l");
+    mListChains = parser.Found(wxT("l"));
 
-    mManualChainRun = parser.Found("r", &stringVal);
+    mManualChainRun = parser.Found(wxT("r"), &stringVal);
     if (mManualChainRun) {
-        mManualChainName = stringVal;
+        mManualChainName = stringVal.mb_str();
 
         // Trim any head/tail space
         size_t start = mManualChainName.find_first_not_of(" \t\n");

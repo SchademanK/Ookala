@@ -43,6 +43,9 @@
 #ifndef WX_PRECOMP
     #include "wx/wx.h"   
 #endif
+
+#include "wxUtils.h"
+
 #include <wx/cmdline.h>
 
 #include "Dict.h"
@@ -78,24 +81,24 @@ usage(int argc, char **argv)
 void
 setupParser(wxCmdLineParser &parser)
 {
-    parser.AddSwitch("q", wxEmptyString, "Query current color space data");
-    parser.AddSwitch("m", wxEmptyString, "Query the current matrix");
-    parser.AddSwitch("e", wxEmptyString, "Enable color processing");
-    parser.AddSwitch("E", wxEmptyString, "Disable color processing");
-    parser.AddSwitch("G", wxEmptyString, "Disable pattern generator");
-    parser.AddSwitch("o", wxEmptyString, "Unlock the OSD");
-    parser.AddSwitch("O", wxEmptyString, "Lock the OSD");
-    parser.AddSwitch("t", wxEmptyString, "Test torino state");
+    parser.AddSwitch(wxT("q"), wxEmptyString, _("Query current color space data"));
+    parser.AddSwitch(wxT("m"), wxEmptyString, _("Query the current matrix"));
+    parser.AddSwitch(wxT("e"), wxEmptyString, _("Enable color processing"));
+    parser.AddSwitch(wxT("E"), wxEmptyString, _("Disable color processing"));
+    parser.AddSwitch(wxT("G"), wxEmptyString, _("Disable pattern generator"));
+    parser.AddSwitch(wxT("o"), wxEmptyString, _("Unlock the OSD"));
+    parser.AddSwitch(wxT("O"), wxEmptyString, _("Lock the OSD"));
+    parser.AddSwitch(wxT("t"), wxEmptyString, _("Test torino state"));
 
-    parser.AddOption("c", wxEmptyString, "Switch to color space N");
-    parser.AddOption("M", wxEmptyString, "Set the current matrix to \"m00 ...\"");
-    parser.AddOption("p", wxEmptyString, "Download the pre-LUT to the given filename");
-    parser.AddOption("P", wxEmptyString, "Download the post-LUT to the given filename");
-    parser.AddOption("g", wxEmptyString, "Enable the pattern generator to \"R G B\"");
-    parser.AddOption("b", wxEmptyString, "Set the backlight brightness register (8-bits)");
-    parser.AddOption("d", wxEmptyString, "Copy the current color space data to preset N");
+    parser.AddOption(wxT("c"), wxEmptyString, _("Switch to color space N"));
+    parser.AddOption(wxT("M"), wxEmptyString, _("Set the current matrix to \"m00 ...\""));
+    parser.AddOption(wxT("p"), wxEmptyString, _("Download the pre-LUT to the given filename"));
+    parser.AddOption(wxT("P"), wxEmptyString, _("Download the post-LUT to the given filename"));
+    parser.AddOption(wxT("g"), wxEmptyString, _("Enable the pattern generator to \"R G B\""));
+    parser.AddOption(wxT("b"), wxEmptyString, _("Set the backlight brightness register (8-bits)"));
+    parser.AddOption(wxT("d"), wxEmptyString, _("Copy the current color space data to preset N"));
 
-    parser.AddParam("Path to plugin files");
+    parser.AddParam(_("Path to plugin files"));
 }
 
 int 
@@ -152,89 +155,89 @@ main(int argc, char **argv)
         return 1;
     }
 
-    if (parser.Found("c", &argStr)) {
+    if (parser.Found(wxT("c"), &argStr)) {
         optionColorspace      = true;
-        optionColorspaceValue = atoi(argStr.c_str());
+        optionColorspaceValue = atoi(argStr.mb_str());
     }
 
-    if (parser.Found("q")) {
+    if (parser.Found(wxT("q"))) {
         optionQuery = true;
     }
 
-    if (parser.Found("m")) {
+    if (parser.Found(wxT("m"))) {
         optionMatrix = true;
     }
 
-    if (parser.Found("M", &argStr)) {
+    if (parser.Found(wxT("M"), &argStr)) {
        optionSetMatrix = true;
-       sscanf(argStr.c_str(), "%lf %lf %lf %lf %lf %lf %lf %lf %lf",
+       sscanf(argStr.mb_str(), "%lf %lf %lf %lf %lf %lf %lf %lf %lf",
                        &optionNewMatrix[0], &optionNewMatrix[1], &optionNewMatrix[2], 
                        &optionNewMatrix[3], &optionNewMatrix[4], &optionNewMatrix[5], 
                        &optionNewMatrix[6], &optionNewMatrix[7], &optionNewMatrix[8]);
     }
         
-    if (parser.Found("p", &argStr)) {
+    if (parser.Found(wxT("p"), &argStr)) {
         optionGetPreLut         = true;
 #ifdef _WIN32
-        optionGetPreLutFilename = _strdup(argStr.c_str());
+        optionGetPreLutFilename = _strdup(argStr.mb_str());
 #else
-        optionGetPreLutFilename = strdup(argStr.c_str());
+        optionGetPreLutFilename = strdup(argStr.mb_str());
 #endif
     }
 
-    if (parser.Found("P", &argStr)) {
+    if (parser.Found(wxT("P"), &argStr)) {
         optionGetPostLut         = true;
 
 #ifdef _WIN32
-        optionGetPostLutFilename = _strdup(argStr.c_str());
+        optionGetPostLutFilename = _strdup(argStr.mb_str());
 #else
-        optionGetPostLutFilename = strdup(argStr.c_str());
+        optionGetPostLutFilename = strdup(argStr.mb_str());
 #endif
     }
 
-    if (parser.Found("e")) {
+    if (parser.Found(wxT("e"))) {
         optionDoEnable = true;
     }
 
-    if (parser.Found("E")) {
+    if (parser.Found(wxT("E"))) {
         optionDoDisable = true;
     }
 
-    if (parser.Found("g", &argStr)) {
+    if (parser.Found(wxT("g"), &argStr)) {
         optionDoPatternEnable  = true;
-        sscanf(argStr.c_str(), "%d %d %d", 
+        sscanf(argStr.mb_str(), "%d %d %d", 
                     &optionDoPatternColor[0],
                     &optionDoPatternColor[1],
                     &optionDoPatternColor[2]);
     }
 
-    if (parser.Found("G")) {
+    if (parser.Found(wxT("G"))) {
         optionDoPatternDisable = true;
     }
 
-    if (parser.Found("o")) {
+    if (parser.Found(wxT("o"))) {
         optionUnlockOsd = true;
     }
 
-    if (parser.Found("O")) {
+    if (parser.Found(wxT("O"))) {
         optionLockOsd = true;
     }
 
-    if (parser.Found("b", &argStr)) {
+    if (parser.Found(wxT("b"), &argStr)) {
         optionBrightness      = true;
-        optionBrightnessValue = atoi(argStr.c_str());
+        optionBrightnessValue = atoi(argStr.mb_str());
     }
 
-    if (parser.Found("d", &argStr)) {
+    if (parser.Found(wxT("d"), &argStr)) {
         optionCopyPreset      = true;
-        optionCopyPresetDst   = atoi(argStr.c_str());
+        optionCopyPresetDst   = atoi(argStr.mb_str());
     }
 
-    if (parser.Found("t")) {
+    if (parser.Found(wxT("t"))) {
         optionTorinoReady = true;
     }
 
-    std::string pluginDir = (std::string)parser.GetParam();
+    std::string pluginDir = (std::string)parser.GetParam().mb_str();
     std::string pluginPath;
 
 #ifdef _WIN32

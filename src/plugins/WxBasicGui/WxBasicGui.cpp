@@ -40,6 +40,7 @@
     #include "wx/wx.h"
 #endif
 
+#include "wxUtils.h"
 
 #include "Color.h"
 #include "PluginChain.h"
@@ -271,7 +272,7 @@ Ookala::WxBasicGuiDialog::WxBasicGuiDialog(PluginChain *chain, Color *color):
     mStatusVBox = new wxBoxSizer(wxVERTICAL);
 
     // Add a static box for some info display
-    mInfoVBox = new wxStaticBoxSizer(wxVERTICAL, mKeyWindow, "Color Sensor Measurements");
+    mInfoVBox = new wxStaticBoxSizer(wxVERTICAL, mKeyWindow, _("Color Sensor Measurements"));
     
     mInfoGrid = new wxFlexGridSizer(2, 2, 50);         // 2 column grid
 
@@ -343,7 +344,7 @@ Ookala::WxBasicGuiDialog::WxBasicGuiDialog(PluginChain *chain, Color *color):
 
     mButtonVBox = new wxBoxSizer(wxVERTICAL);
 
-    mButtonVBox->Add(new wxButton(mKeyWindow, wxID_CANCEL, "Cancel"),  0, wxALL, 2);
+    mButtonVBox->Add(new wxButton(mKeyWindow, wxID_CANCEL, _("Cancel")),  0, wxALL, 2);
 
     mMainHBox->Add(mButtonVBox, 0, wxALL | wxALIGN_BOTTOM | wxALIGN_RIGHT, 10);
 
@@ -449,13 +450,13 @@ Ookala::WxBasicGuiDialog::onValueUpdate(BasicGuiEvent &event)
         char buf[1024];
 
         sprintf(buf, "%.3f cd/m^2", event.colorYxy.Y);
-        mInfoGridValue[0]->SetLabel(std::string(buf));
+        mInfoGridValue[0]->SetLabel(_U(buf));
 
         sprintf(buf, "%.4f", event.colorYxy.x);
-        mInfoGridValue[1]->SetLabel(std::string(buf));
+        mInfoGridValue[1]->SetLabel(_U(buf));
 
         sprintf(buf, "%.4f", event.colorYxy.y);
-        mInfoGridValue[2]->SetLabel(std::string(buf));
+        mInfoGridValue[2]->SetLabel(_U(buf));
 
         if (mGamutPlot) {
             mGamutPlot->setMeasurement(event.colorYxy);
@@ -465,12 +466,12 @@ Ookala::WxBasicGuiDialog::onValueUpdate(BasicGuiEvent &event)
             double cct = mColor->computeCct(event.colorYxy);
 
             if (cct < 0) {
-                mInfoGridValue[3]->SetLabel(std::string("Unknown"));
+                mInfoGridValue[3]->SetLabel(_U("Unknown"));
             } else {
                 char buf[1024];
                 
                 sprintf(buf, "%5.0f K", cct);
-                mInfoGridValue[3]->SetLabel(std::string(buf));
+                mInfoGridValue[3]->SetLabel(_U(buf));
             }
         }
     }
@@ -493,13 +494,15 @@ Ookala::WxBasicGuiDialog::onValueUpdate(BasicGuiEvent &event)
 
 
     if (updateStatusBar) {
-        std::string msg;
+		std::string msg;
 
         if (!mStatusMajor.empty()) {
-            msg = mStatusMajor + std::string(": ");
+            msg = mStatusMajor + ": ";
         } 
         msg += mStatusMinor;
-        mStatusBar->SetStatusText(msg);
+		const wxString wxmsg = _S(msg);
+		
+        mStatusBar->SetStatusText(wxmsg, atoi(mStatusMajor.c_str()));
     }
 }
 

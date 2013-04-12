@@ -153,8 +153,8 @@ SessionManage::smcSetupProperties()
     props[0]->num_vals = 1;
     props[0]->vals     = new SmPropValue[1];
     for (int i=0; i<1; ++i) {
-        props[0]->vals[i].length = strlen(mApp->argv[i]) + 1;
-        props[0]->vals[i].value  = strdup(mApp->argv[i]);
+        props[0]->vals[i].length = strlen((const char*)(mApp->argv[i])) + 1;
+        props[0]->vals[i].value  = strdup((const char*)(mApp->argv[i]));
     }
 
     // SmRestartCommand     
@@ -164,8 +164,8 @@ SessionManage::smcSetupProperties()
     props[1]->num_vals = 2;
     props[1]->vals     = new SmPropValue[2];
     for (int i=0; i<1; ++i) {
-        props[1]->vals[i].length = strlen(mApp->argv[i]) + 1;
-        props[1]->vals[i].value  = strdup(mApp->argv[i]);
+        props[1]->vals[i].length = strlen((const char*)(mApp->argv[i])) + 1;
+        props[1]->vals[i].value  = strdup((const char*)(mApp->argv[i]));
     }
     char buf[4096];
     sprintf(buf, "--sm-client-id=%s", mSessionId.c_str());
@@ -179,8 +179,8 @@ SessionManage::smcSetupProperties()
     props[2]->type           = (char *) SmARRAY8;
     props[2]->num_vals       = 1;
     props[2]->vals           = new SmPropValue[1];
-    props[2]->vals[0].length = strlen(mApp->argv[0]) + 1;
-    props[2]->vals[0].value  = strdup(mApp->argv[0]);
+    props[2]->vals[0].length = strlen((const char*)(mApp->argv[0])) + 1;
+    props[2]->vals[0].value  = strdup((const char*)(mApp->argv[0]));
 
     // SmUserID
     struct passwd *pwd = getpwuid(getuid());

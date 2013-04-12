@@ -33,6 +33,8 @@
 
 #include "WxIconCtrl.h"
 
+#include "wxUtils.h"
+
 #include "default_icon.xpm"
 
 // ----------------------------------
@@ -275,7 +277,7 @@ WxIconCtrl::loadIcons(Ookala::Dict *chainDict)
 
         wxIcon icon;
 
-        if (!icon.LoadFile(stringItem->get(), wxBITMAP_TYPE_XPM)) {
+        if (!icon.LoadFile(_S(stringItem->get()), wxBITMAP_TYPE_XPM)) {
             if (debug) {
                 fprintf(stderr, "NOTE: Error reading %s as .xpm\n",
                             stringItem->get().c_str());
