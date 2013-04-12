@@ -1,0 +1,969 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ucaldata>
+
+<!--
+=============================================================================
+$Id: ucal.xml.sample 135 2008-12-19 00:49:58Z omcf $
+=============================================================================
+
+Copyright (c) 2008 Hewlett-Packard Development Company, L.P.
+
+Permission is hereby granted, free of charge, to any person obtaining 
+a copy of this software and associated documentation files (the "Software"), 
+to deal in the Software without restriction, including without limitation 
+the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+and/or sell copies of the Software, and to permit persons to whom the 
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included 
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS 
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+OTHER DEALINGS IN THE SOFTWARE.
+
+=============================================================================
+-->
+
+
+<!--
+=============================================================================
+UCAL.XML - Configuration and Runtime File
+
+    This configuration file defines specific functionality (plugin
+    chains) and plugin module requirements for driving the UCAL
+    application as a user-calibration tool. 
+
+    At startup of the ucal app, a pre-configured version of this file 
+    is input along with resource (plugin modules) to present a user
+    interface for driving calibration and display instruments.  
+
+    On a Linux system, this file is obtained per XDG Base Directory
+    Specification from the $XDG_CONFIG_HOME variable: 
+
+        $HOME/.config/ucal/ucal.xml
+
+    This path is used first (from a user's directory) if the following
+    system configuration path is not available:
+
+        /etc/xdg/ucal/ucal.xml 
+
+    Ucal requires:
+  
+        + wxWidgets for user-interface presentation
+        + plugin modules (misc - path to these libs)
+        + sensor plugin module (globally rename from MySENSOR below,
+                                e.g., ExampleSensor, Chroma5, i1D2HPDC 
+                                or other sensor module - ExampleSensor
+                                is a useful default for exploration with
+                                a dummy sensor device)
+        + sensor support libraries (vendor API/libraries) 
+        + icons (path to these assets)
+        + archive storage (path to read/write storage for DataSavior
+                           settings files - saved state currently 
+                           defined /tmp/records.xml)
+ 
+    This sample Ucal XML template demonstrates the following features
+    on a Linux-based system:
+
+        =====================================================================
+        <?xml> 
+        <ucaldata>
+
+          01. Plugin Preload - load required plugins for plugin name
+                               resolution (no forward addressing)
+
+          02. Default Color Preset - initial preset if no user-preset
+                               is defined in a chain
+ 
+          03. CHAIN 0: Sweep gamma - interactive gamma-lut animator
+
+          04. CHAIN 1: Randomize - randomize current lut contents
+
+          05. CHAIN 2: Reset LUT - reset a lut linear ramp
+ 
+          06. CHAIN 3: High Gamma LUT - display a fixed gamma (4.0)
+
+          07. CHAIN 4: Low Gamma LUT - display a fixed gamma (0.5)
+
+          08. CHAIN 5: Calibrate - perform a calibration pass with defined
+                                   sensor and display (D65/REC709, preset 6) 
+                                   (HD/Film)
+
+          09. CHAIN 6: Switch calibration targets - set to Target 0 
+                                                    (preset 6)
+
+          10. CHAIN 7: Switch calibration targets - set to Target 1
+                                                    (preset 5)
+
+          11. CHAIN 8: Initialize icons - loads GUI icons for Ucal
+                                    [hidden from menu]
+
+          12. CHAIN 9: Check calibration status - reload current saved state
+
+          13. CHAIN 10: Calibrate other color spaces - calibrate against
+                                    (HP DreamColor) Factory Presets:
+                                            preset 0 - Full 
+                                            preset 1 - Adobe RGB
+                                            preset 2 - SMPTE-C
+                                            preset 3 - sRGB
+                                            preset 4 - REC709
+                                            preset 5 - DCIP3 Emulation
+
+        </ucaldata>
+        =====================================================================
+    
+=============================================================================
+-->
+
+
+
+<!-- 
+=============================================================================
+PLUGIN PRELOAD
+=============================================================================
+Plugin loading blocks. Below, when we define plugin chains, we can't
+have forward declarions. So, any plugins that are referenced below
+must be loaded here first. Modify the basepath to fit your local
+installation, e.g., /usr/local/ookala/lib, etc.
+-->
+
+<loadplugin>/usr/local/ookala/lib64/libMySENSOR.so</loadplugin>
+
+<loadplugin>/usr/local/ookala/lib64/libDevI2c.so</loadplugin>
+<loadplugin>/usr/local/ookala/lib64/libWsLut.so</loadplugin>
+<loadplugin>/usr/local/ookala/lib64/libDreamColor.so</loadplugin>
+<loadplugin>/usr/local/ookala/lib64/libWxDreamColorCalib.so</loadplugin>
+<loadplugin>/usr/local/ookala/lib64/libWxSensorPrep.so</loadplugin>
+<loadplugin>/usr/local/ookala/lib64/libWxLutSweep.so</loadplugin>
+<loadplugin>/usr/local/ookala/lib64/libWxBasicGui.so</loadplugin>
+
+<!-- 
+=============================================================================
+DEFAULT COLOR PRESET
+=============================================================================
+Set a default color preset. If something else has been set by the user,
+it will be loaded by the calibration checker chain at startup and 
+blow away this value.
+
+We're naming our targets:
+    Target 0
+    Target 1
+      ...
+and so on, stored in the dict "Calibration Records". This is the 
+same place we'll point the DataSavior for loading and saving.   
+ -->
+
+<dict name="Calibration Records">
+    <dictitem type="string" name="Current Preset">Target 0</dictitem>
+</dict>
+
+
+<!-- 
+=============================================================================
+CHAIN 0: Sweep gamma 
+=============================================================================
+-->
+<chain name="Sweep Gamma">
+    <dict name="Chain 0 data">  
+
+        <!-- 
+        Look in the dict "Calibration Records" for the a string
+        with key "Current Preset". Follow that key to get the
+        the string of the current color target.
+    
+        For example:
+            Calibration Records["Current Preset"] = "Target 0"
+            Calibration Records["Target 0"]       = calibration record item
+
+        Alternatively, you can directly address the calibration
+        record using CalibChecker::calibRecordName. The MetaRecordName
+        version will evaluation first, however. In the direct case,
+        we would have:
+
+            Calibration Records["Target 0"]      = calibration record item
+
+        and the specification would be:
+
+            <dictitem type="string" name="CalibChecker::calibRecordDict">
+                        Calibration Records</dictitem>
+            <dictitem type="string" name="CalibChecker::calibRecordName">
+                        Target 0</dictitem>
+
+        But, if we directly address the record name, its really hard
+        to deal with cases where we have multiple color presets in play. 
+        -->
+
+        <dictitem type="string" name="CalibChecker::calibRecordDict">
+                        Calibration Records</dictitem>
+        <dictitem type="string" name="CalibChecker::calibMetaRecordName">
+                        Current Preset</dictitem>
+
+        <!-- Calibrations valid for 1000 hours -->
+        <dictitem type="int"    name="CalibChecker::calibHours">1000</dictitem>
+    </dict>
+
+    <!-- Define all the plugins that we want to have in the chain -->
+    <plugin>WxLutSweep</plugin>
+    <plugin>CalibChecker</plugin>
+
+</chain>
+
+
+<!-- 
+=============================================================================
+CHAIN 1: Randomize 
+=============================================================================
+-->
+<chain name="Randomize">
+    <dict name="Chain 1 data">  
+        <dictitem type="bool" name="WsLut::randomize">true</dictitem>
+        <dictitem type="string" name="CalibChecker::calibRecordDict">
+                        Calibration Records</dictitem>
+        <dictitem type="string" name="CalibChecker::calibMetaRecordName">
+                        Current Preset</dictitem>
+        <dictitem type="int" name="CalibChecker::calibHours">1000</dictitem>
+    </dict>
+
+    <!-- Define all the plugins that we want to have in the chain -->
+    <plugin>WsLut</plugin>
+    <plugin>CalibChecker</plugin>
+
+</chain>
+
+
+<!-- 
+=============================================================================
+CHAIN 2: Reset LUT 
+=============================================================================
+-->
+<chain name="Reset LUT">
+    <dict name="Chain 2 data">      
+        <dictitem type="bool" name="WsLut::reset">true</dictitem>
+        <dictitem type="string" name="CalibChecker::calibRecordDict">
+                        Calibration Records</dictitem>
+        <dictitem type="string" name="CalibChecker::calibMetaRecordName">
+                        Current Preset</dictitem>
+        <dictitem type="int" name="CalibChecker::calibHours">1000</dictitem>
+    </dict>
+
+    <!-- Define all the plugins that we want to have in the chain -->
+    <plugin>WsLut</plugin>
+    <plugin>CalibChecker</plugin>
+
+</chain>
+
+
+<!-- 
+=============================================================================
+CHAIN 3: High Gamma LUT 
+=============================================================================
+-->
+<chain name="High Gamma (4.0)">
+    <dict name="Chain 3 data">      
+        <dictitem type="double" name="WsLut::pow">0.25</dictitem>
+        <dictitem type="string" name="CalibChecker::calibRecordDict">
+                        Calibration Records</dictitem>
+        <dictitem type="string" name="CalibChecker::calibMetaRecordName">
+                        Current Preset</dictitem>
+        <dictitem type="int"    name="CalibChecker::calibHours">1000</dictitem>
+    </dict>
+
+    <!-- Define all the plugins that we want to have in the chain -->
+    <plugin>WsLut</plugin>
+    <plugin>CalibChecker</plugin>
+
+</chain>
+
+
+<!-- 
+=============================================================================
+CHAIN 4: Low Gamma LUT 
+=============================================================================
+-->
+<chain name="Low Gamma (0.5)">
+    <dict name="Chain 4 data">      
+        <dictitem type="double" name="WsLut::pow">2.0</dictitem>
+        <dictitem type="string" name="CalibChecker::calibRecordDict">
+                        Calibration Records</dictitem>
+        <dictitem type="string" name="CalibChecker::calibMetaRecordName">
+                        Current Preset</dictitem>
+        <dictitem type="int" name="CalibChecker::calibHours">1000</dictitem>
+    </dict>
+
+    <plugin>WsLut</plugin>
+    <plugin>CalibChecker</plugin>
+</chain>
+
+
+<!-- 
+=============================================================================
+CHAIN 5: Calibrate 
+=============================================================================
+-->
+<chain name="Calibrate HD/Film">
+    <dict name="Chain data 5">
+        <dictitem type="string" name="CalibChecker::calibRecordDict">
+                        Calibration Records</dictitem>
+        <dictitem type="string" name="CalibChecker::calibMetaRecordName">
+                        Current Preset</dictitem>
+        <dictitem type="int" name="CalibChecker::calibHours">1000</dictitem>
+
+        <!-- Set the gray ramp sampling frequency -->
+        <dictitem type="int" name="DreamColorCalib::graySamples">32</dictitem>
+
+        <!-- List out what dict we want calibration records to go into -->
+        <dictitem type="string" name="DreamColorCalib::calibRecordDict">
+                        Calibration Records</dictitem>
+                        
+        <!-- Store the data dict somewhere on disk -->
+        <dictitem type="bool" name="DataSavior::save">true</dictitem>
+
+        <dictitem type="stringArray" name="DataSavior::fileNames">
+                <value>/tmp/records.xml</value>
+        </dictitem>
+
+        <dictitem type="stringArray" name="DataSavior::dictNames">
+            <value>Calibration Records</value>
+        </dictitem>
+
+        <!-- 
+        List our calibration tolerances. Setting this too low will cause 
+        calibration failures 
+        -->
+        <dictitem type="doubleArray" name="DreamColorCalib::whiteTolerance">
+                        <value>1</value>       <!-- Y tolerance -->
+                        <value>0.0025</value>  <!-- x tolerance -->
+                        <value>0.0025</value>  <!-- y tolerance -->
+        </dictitem>
+        <dictitem type="doubleArray" name="DreamColorCalib::redTolerance">
+                        <value>0.0025</value>  <!-- x tolerance -->
+                        <value>0.0025</value>  <!-- y tolerance -->
+        </dictitem>
+        <dictitem type="doubleArray" name="DreamColorCalib::greenTolerance">
+                        <value>0.0025</value>  <!-- x tolerance -->
+                        <value>0.0025</value>  <!-- y tolerance -->
+        </dictitem>
+        <dictitem type="doubleArray" name="DreamColorCalib::blueTolerance">
+                        <value>0.006</value>   <!-- x tolerance -->
+                        <value>0.006</value>   <!-- y tolerance -->
+        </dictitem>
+
+
+        <!-- List all our targets. -->
+
+        <dictitem type="stringArray" name="DreamColorCalib::targets">
+                        <value>Color Target 0</value>
+
+                        <!-- Define other targets here/below if desired -->
+        </dictitem>
+
+        <!-- COLOR TARGET 0 ============================================= -->
+
+        <!-- Define our first color target, D65/REC709, on preset 6 -->
+        <dictitem type="DreamColorSpaceInfo" name="Color Target 0">
+        <dictitem type="string" name="calibRecordName">   Target 0</dictitem>
+        <dictitem type="int"    name="presetId">                 6</dictitem>
+        <dictitem type="bool"   name="enabled">               true</dictitem>
+        <dictitem type="bool"   name="calibrated">           false</dictitem>
+        <dictitem type="int"    name="calibratedTimeRemaining">1000</dictitem>
+        <dictitem type="string" name="name">            D65_REC709</dictitem>
+
+        <dictitem type="doubleArray" name="white">
+                        <value>50.0</value>
+                        <value>0.3127</value>
+                        <value>0.3290</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="red">
+                        <value>0.640</value>
+                        <value>0.330</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="green">
+                        <value>0.300</value>
+                        <value>0.600</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="blue">
+                        <value>0.150</value>
+                        <value>0.060</value>
+        </dictitem>            
+
+        <dictitem type="double" name="trcGamma"> 2.20000</dictitem>
+        <dictitem type="double" name="trcA0">    0.05490</dictitem>            
+        <dictitem type="double" name="trcA1">   32.54577</dictitem>            
+        <dictitem type="double" name="trcA2">    0.00000</dictitem>            
+        <dictitem type="double" name="trcA3">    0.00000</dictitem>            
+        </dictitem>
+
+        <!-- Setup our MySENSOR sensor config -->
+        <dictitem type="string" name="MySENSOR::displayType">lcd</dictitem>
+        <dictitem type="double" name="MySENSOR::integrationTime">3.0</dictitem>
+        <dictitem type="int"    name="MySENSOR::calibrationIdx">1</dictitem>
+    </dict>
+
+    <!-- Define all the plugins that we want to have in the chain -->
+    <plugin>WxBasicGui</plugin>
+    <plugin>MySENSOR</plugin>
+    <plugin>WxSensorPrep</plugin>
+    <plugin>DreamColorCtrl</plugin>
+    <plugin>WxDreamColorCalib</plugin>
+    <plugin>DataSavior</plugin>
+    <plugin>CalibChecker</plugin>
+
+</chain>
+
+
+<!-- 
+=============================================================================
+CHAIN 6: Switch calibration targets 
+=============================================================================
+-->
+<chain name="Reset to Target 0" >
+    <dict name="Chain data 6">
+
+        <!-- 
+        Update the dict that holds the current calibration target.
+        A default value for this should be written up top, and
+        we're chainging it so that others can track the change in
+        calibration target 
+        -->
+        <dictitem type="string" name="DictHash::dict">
+                        Calibration Records</dictitem>
+        <dictitem type="stringArray" name="DictHash::set">
+                        <value>Current Preset</value>
+        </dictitem>
+
+        <dictitem type="string" name="Current Preset">Target 0</dictitem>
+
+        
+        <!-- 
+        We'll saved the changes to the current calibration target records. 
+        -->
+        <dictitem type="bool" name="DataSavior::save">true</dictitem>
+
+        <dictitem type="stringArray" name="DataSavior::fileNames">
+                        <value>/tmp/records.xml</value>
+        </dictitem>
+
+        <dictitem type="stringArray" name="DataSavior::dictNames">
+                        <value>Calibration Records</value>
+        </dictitem>
+
+
+        <dictitem type="string" name="CalibChecker::calibRecordDict">
+                        Calibration Records</dictitem>
+        <dictitem type="string" name="CalibChecker::calibMetaRecordName">
+                        Current Preset</dictitem>
+
+        <!-- Calibrations valid for 1000 hours -->
+        <dictitem type="int" name="CalibChecker::calibHours">1000</dictitem>
+
+        <!-- Switch to preset 6 on the display -->
+        <dictitem type="int" name="DreamColorCtrl::setColorSpace">6</dictitem>
+
+        <!-- Reset the LUTs on the graphics' card to the identity -->
+        <dictitem type="bool" name="WsLut::reset">true</dictitem>
+
+    </dict>
+
+    <!-- Define all the plugins that we want to have in the chain -->
+    <plugin>WsLut</plugin>
+    <plugin>DreamColorCtrl</plugin>
+    <plugin>DictHash</plugin> 
+    <plugin>DataSavior</plugin>
+    <plugin>CalibChecker</plugin>
+
+</chain>
+
+
+<!-- 
+=============================================================================
+CHAIN 7: Switch calibration targets 
+=============================================================================
+-->
+<chain name="Switch to Target 1" >
+    <dict name="Chain data 7">
+
+        <!-- 
+        Update the dict that holds the current calibration target.
+        A default value for this should be written up top, and
+        we're chainging it so that others can track the change in
+        calibration target 
+        -->
+        <dictitem type="string" name="DictHash::dict">
+                        Calibration Records</dictitem>
+        <dictitem type="stringArray" name="DictHash::set">
+                        <value>Current Preset</value>
+        </dictitem>
+
+        <dictitem type="string" name="Current Preset">Target 1</dictitem>
+
+        <!-- 
+        We'll saved the changes to the current calibration target records. 
+        -->
+        <dictitem type="bool" name="DataSavior::save">true</dictitem>
+
+        <dictitem type="stringArray" name="DataSavior::fileNames">
+                        <value>/tmp/records.xml</value>
+        </dictitem>
+
+        <dictitem type="stringArray" name="DataSavior::dictNames">
+                        <value>Calibration Records</value>
+        </dictitem>
+
+        <!-- 
+        Look in the dict "Calibration Records" for the a string with key 
+        "Current Preset". Follow that key to get the the string of the 
+        current color target.
+
+        For example:
+            Calibration Records["Current Preset"] = "Target 0"
+            Calibration Records["Target 0"]       = calibration record item
+
+        Alternativly, you can directly address the calibration record using 
+        CalibChecker::calibRecordName. The MetaRecordName version will 
+        evaluation first, however. In the direct case, we would have:
+
+            Calibration Records["Target 0"]      = calibration record item
+
+        and the specification would be:
+
+            <dictitem type="string" name="CalibChecker::calibRecordDict">
+                        Calibration Records</dictitem>
+            <dictitem type="string" name="CalibChecker::calibRecordName">
+                        Target 0</dictitem>
+
+        But, if we directly address the record name, its really hard
+        to deal with cases where we have multiple color presets in play. 
+        -->
+
+        <dictitem type="string" name="CalibChecker::calibRecordDict">
+                        Calibration Records</dictitem>
+        <dictitem type="string" name="CalibChecker::calibMetaRecordName">
+                        Current Preset</dictitem>
+
+        <dictitem type="int" name="CalibChecker::calibHours">1000</dictitem>
+
+
+        <!-- Switch to preset 5 on the display -->
+        <dictitem type="int" name="DreamColorCtrl::setColorSpace">5</dictitem>
+
+        <!-- Reset the LUTs on the graphics' card to the identity -->
+        <dictitem type="bool" name="WsLut::reset">true</dictitem>
+
+    </dict>
+
+    <!-- Define all the plugins that we want to have in the chain -->
+    <plugin>WsLut</plugin>
+    <plugin>DreamColorCtrl</plugin>
+    <plugin>DictHash</plugin> 
+    <plugin>DataSavior</plugin>
+    <plugin>CalibChecker</plugin>
+
+</chain>
+
+
+<!-- 
+=============================================================================
+CHAIN 8: Initialize icons. This should come before the initial
+         calibration checker, because we need to load icons first! 
+         (we could put them in the same chain, but we don't need
+         the extra disk io of constantly re-loading files)    
+=============================================================================
+ -->
+<chain name="Initialize Icons" period="10000000" hidden="yes">
+    <dict name="Chain data 8">
+        <dictitem type="stringArray" name="WxIconCtrl::load">
+                        <value>Target 0 calib</value>
+                        <value>Target 0 notCalib</value>
+                        <value>Target 0 badLut</value>
+                        <value>Target 0 badDisplayState</value>
+
+                        <value>Target 1 calib</value>
+                        <value>Target 1 notCalib</value>
+        </dictitem>
+
+        <dictitem type="string" name="Target 0 calib">
+                        /usr/local/ookala/icons/709_good.xpm</dictitem>
+        <dictitem type="string" name="Target 0 notCalib">
+                        /usr/local/ookala/icons/709_bad.xpm</dictitem> 
+        <dictitem type="string" name="Target 0 badLut">
+                        /usr/local/ookala/icons/709_gamma.xpm</dictitem> 
+        <dictitem type="string" name="Target 0 badDisplayState">
+                        /usr/local/ookala/icons/709_displaysetup.xpm</dictitem> 
+
+        <dictitem type="string" name="Target 1 calib">
+                        /usr/local/ookala/icons/check-mon-yes.xpm</dictitem>
+        <dictitem type="string" name="Target 1 notCalib">
+                        /usr/local/ookala/icons/check-mon-no.xpm</dictitem>
+    </dict>
+
+    <!-- Define all the plugins that we want to have in the chain -->
+    <plugin>WxIconCtrl</plugin>
+
+</chain>
+
+
+<!-- 
+=============================================================================
+CHAIN 9: Check calibration status 
+=============================================================================
+-->
+<chain name="Check Calibration" period="30">
+    <dict name="Chain data 9">
+
+        <!-- 
+        We'll force a reload of saved records. This makes sure
+        that we're up to date with the latest readings         
+        -->
+        <dictitem type="bool" name="DataSavior::load">true</dictitem>
+
+        <dictitem type="stringArray" name="DataSavior::fileNames">
+                        <value>/tmp/records.xml</value>
+        </dictitem>
+
+        <dictitem type="string" name="CalibChecker::calibRecordDict">
+                        Calibration Records</dictitem>
+        <dictitem type="string" name="CalibChecker::calibMetaRecordName">
+                        Current Preset</dictitem>
+        <dictitem type="int" name="CalibChecker::calibHours">1000</dictitem>
+
+    </dict>
+
+    <!-- Define all the plugins that we want to have in the chain -->
+    <plugin>DataSavior</plugin> 
+    <plugin>CalibChecker</plugin>
+
+</chain>
+
+
+<!-- 
+=============================================================================
+CHAIN 10: Calibrate other color spaces 
+=============================================================================
+-->
+<chain name="Calibrate Factory Presets">
+    <dict name="Chain data 10">
+
+        <dictitem type="string" name="CalibChecker::calibRecordDict">
+                        Calibration Records</dictitem>
+        <dictitem type="string" name="CalibChecker::calibMetaRecordName">
+                        Current Preset</dictitem>
+        <dictitem type="int" name="CalibChecker::calibHours">1000</dictitem>
+
+        <!-- Set the gray ramp sampling frequency -->
+        <dictitem type="int" name="DreamColorCalib::graySamples">32</dictitem>
+
+        <!-- List out what dict we want calibration records to go into -->
+        <dictitem type="string" name="DreamColorCalib::calibRecordDict">
+                        Calibration Records</dictitem>
+
+        <!-- Store the data dict somewhere on disk -->
+        <dictitem type="bool" name="DataSavior::save">true</dictitem>
+
+        <dictitem type="stringArray" name="DataSavior::fileNames">
+                        <value>/tmp/records.xml</value>
+        </dictitem>
+
+        <dictitem type="stringArray" name="DataSavior::dictNames">
+                        <value>Calibration Records</value>
+        </dictitem>
+
+        <!-- 
+        List our calibration tolerances. Setting this too low will cause 
+        calibration failures 
+        -->
+        <dictitem type="doubleArray" name="DreamColorCalib::whiteTolerance">
+                        <value>20</value>       <!-- Y tolerance -->
+                        <value>0.0125</value>   <!-- x tolerance -->
+                        <value>0.0125</value>   <!-- y tolerance -->
+        </dictitem>
+        <dictitem type="doubleArray" name="DreamColorCalib::redTolerance">
+                        <value>0.0125</value>   <!-- x tolerance -->
+                        <value>0.0125</value>   <!-- y tolerance -->
+        </dictitem>
+        <dictitem type="doubleArray" name="DreamColorCalib::greenTolerance">
+                        <value>0.0125</value>   <!-- x tolerance -->
+                        <value>0.0125</value>   <!-- y tolerance -->
+        </dictitem>
+        <dictitem type="doubleArray" name="DreamColorCalib::blueTolerance">
+                        <value>0.015</value>    <!-- x tolerance -->
+                        <value>0.015</value>    <!-- y tolerance -->
+        </dictitem>
+
+        <!-- List all our targets. -->
+
+        <dictitem type="stringArray" name="DreamColorCalib::targets">
+                        <value>Color Target 0</value>
+                        <value>Color Target 1</value>
+                        <value>Color Target 2</value>
+                        <value>Color Target 3</value>
+                        <value>Color Target 4</value>
+                        <value>Color Target 5</value>
+        </dictitem>
+
+        <!-- COLOR TARGET 0 ============================================= -->
+
+        <!-- Define our first color target, Full on preset 0 -->
+        <dictitem type="DreamColorSpaceInfo" name="Color Target 0">
+        <dictitem type="string" name="calibRecordName">   Target 0</dictitem>
+        <dictitem type="int"    name="presetId">                 0</dictitem>
+        <dictitem type="bool"   name="enabled">               true</dictitem>
+        <dictitem type="bool"   name="calibrated">            true</dictitem>
+        <dictitem type="int"    name="calibratedTimeRemaining">1000</dictitem>
+        <dictitem type="string" name="name">                  Full</dictitem>
+
+        <dictitem type="doubleArray" name="white">
+              <value> 250.0</value>
+              <value>0.3127</value>
+              <value>0.3290</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="red">
+              <value>0.690</value>
+              <value>0.30</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="green">
+              <value>0.21</value>
+              <value>0.71</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="blue">
+              <value>0.15</value>
+              <value>0.05</value>
+        </dictitem>            
+
+        <dictitem type="double" name="trcGamma"> 2.2</dictitem>
+        <dictitem type="double" name="trcA0">    0.0</dictitem>            
+        <dictitem type="double" name="trcA1">    1.0</dictitem>            
+        <dictitem type="double" name="trcA2">    0.0</dictitem>            
+        <dictitem type="double" name="trcA3">    0.0</dictitem>            
+        </dictitem>
+
+        <!-- COLOR TARGET 1 ============================================= -->
+
+        <!-- Define our second color target, Adobe RGB, on preset 1 -->
+        <dictitem type="DreamColorSpaceInfo" name="Color Target 1">
+        <dictitem type="string" name="calibRecordName">   Target 1</dictitem>
+        <dictitem type="int"    name="presetId">                 1</dictitem>
+        <dictitem type="bool"   name="enabled">               true</dictitem>
+        <dictitem type="bool"   name="calibrated">            true</dictitem>
+        <dictitem type="int"    name="calibratedTimeRemaining">1000</dictitem>
+        <dictitem type="string" name="name">             Adobe RGB</dictitem>
+
+        <dictitem type="doubleArray" name="white">
+              <value>160.0</value>
+              <value>0.313</value>
+              <value>0.329</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="red">
+              <value>0.64</value>
+              <value>0.34</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="green">
+              <value>0.21</value>
+              <value>0.71</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="blue">
+              <value>0.15</value>
+              <value>0.06</value>
+        </dictitem>            
+
+        <dictitem type="double" name="trcGamma"> 2.199219</dictitem>
+        <dictitem type="double" name="trcA0">         0.0</dictitem>            
+        <dictitem type="double" name="trcA1">         1.0</dictitem>            
+        <dictitem type="double" name="trcA2">     0.00000</dictitem>            
+        <dictitem type="double" name="trcA3">     0.00000</dictitem>            
+        </dictitem>
+
+        <!-- COLOR TARGET 2 ============================================= -->
+
+        <!-- Define our third color target, SMPTE-C, on preset 2 -->
+        <dictitem type="DreamColorSpaceInfo" name="Color Target 2">
+        <dictitem type="string" name="calibRecordName">   Target 2</dictitem>
+        <dictitem type="int"    name="presetId">                 2</dictitem>
+        <dictitem type="bool"   name="enabled">               true</dictitem>
+        <dictitem type="bool"   name="calibrated">            true</dictitem>
+        <dictitem type="int"    name="calibratedTimeRemaining">1000</dictitem>
+        <dictitem type="string" name="name">               SMPTE-C</dictitem>
+
+        <dictitem type="doubleArray" name="white">
+              <value> 160.0</value>
+              <value>0.313</value>
+              <value>0.329</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="red">
+              <value>0.63</value>
+              <value>0.34</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="green">
+              <value>0.31</value>
+              <value>0.595</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="blue">
+              <value>0.155</value>
+              <value>0.07</value>
+        </dictitem>            
+
+        <dictitem type="double" name="trcGamma"> 2.2222</dictitem>
+        <dictitem type="double" name="trcA0">     0.081</dictitem>            
+        <dictitem type="double" name="trcA1">       4.5</dictitem>            
+        <dictitem type="double" name="trcA2">     0.099</dictitem>            
+        <dictitem type="double" name="trcA3">     0.099</dictitem>            
+        </dictitem>
+
+        <!-- COLOR TARGET 3 ============================================= -->
+
+        <!-- Define our fourth color target, sRGB, on preset 3 -->
+        <dictitem type="DreamColorSpaceInfo" name="Color Target 3">
+        <dictitem type="string" name="calibRecordName">   Target 3</dictitem>
+        <dictitem type="int"    name="presetId">                 3</dictitem>
+        <dictitem type="bool"   name="enabled">               true</dictitem>
+        <dictitem type="bool"   name="calibrated">            true</dictitem>
+        <dictitem type="int"    name="calibratedTimeRemaining">1000</dictitem>
+        <dictitem type="string" name="name">                  sRGB</dictitem>
+
+        <dictitem type="doubleArray" name="white">
+              <value> 80.0</value>
+              <value>0.313</value>
+              <value>0.329</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="red">
+              <value>0.64</value>
+              <value>0.33</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="green">
+              <value>0.30</value>
+              <value>0.60</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="blue">
+              <value>0.15</value>
+              <value>0.06</value>
+        </dictitem>            
+
+        <dictitem type="double" name="trcGamma">     2.4</dictitem>
+        <dictitem type="double" name="trcA0">    0.04045</dictitem>            
+        <dictitem type="double" name="trcA1">       12.92</dictitem>            
+        <dictitem type="double" name="trcA2">       0.055</dictitem>            
+        <dictitem type="double" name="trcA3">       0.055</dictitem>            
+        </dictitem>
+
+        <!-- COLOR TARGET 4 ============================================= -->
+
+        <!-- Define our fifth color target, REC709 , on preset 4 -->
+        <dictitem type="DreamColorSpaceInfo" name="Color Target 4">
+        <dictitem type="string" name="calibRecordName">   Target 4</dictitem>
+        <dictitem type="int"    name="presetId">                 4</dictitem>
+        <dictitem type="bool"   name="enabled">               true</dictitem>
+        <dictitem type="bool"   name="calibrated">            true</dictitem>
+        <dictitem type="int"    name="calibratedTimeRemaining">1000</dictitem>
+        <dictitem type="string" name="name">                REC709</dictitem>
+
+        <dictitem type="doubleArray" name="white">
+              <value> 100.0</value>
+              <value>0.313</value>
+              <value>0.329</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="red">
+              <value>0.64</value>
+              <value>0.33</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="green">
+              <value>0.30</value>
+              <value>0.60</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="blue">
+              <value>0.15</value>
+              <value>0.06</value>
+        </dictitem>            
+
+        <dictitem type="double" name="trcGamma"> 2.222</dictitem>
+        <dictitem type="double" name="trcA0">    0.081</dictitem>            
+        <dictitem type="double" name="trcA1">      4.5</dictitem>            
+        <dictitem type="double" name="trcA2">    0.099</dictitem>            
+        <dictitem type="double" name="trcA3">    0.099</dictitem> 
+        </dictitem>
+
+        <!-- COLOR TARGET 5 ============================================= -->
+
+        <!-- Define our sixth color target, DCIP3 Emulation, on preset 5 -->
+        <dictitem type="DreamColorSpaceInfo" name="Color Target 5">
+        <dictitem type="string" name="calibRecordName">   Target 5</dictitem>
+        <dictitem type="int"    name="presetId">                 5</dictitem>
+        <dictitem type="bool"   name="enabled">               true</dictitem>
+        <dictitem type="bool"   name="calibrated">            true</dictitem>
+        <dictitem type="int"    name="calibratedTimeRemaining">1000</dictitem>
+        <dictitem type="string" name="name">       DCIP3_Emulation</dictitem>
+
+        <dictitem type="doubleArray" name="white">
+              <value> 50.0</value>
+              <value>0.314</value>
+              <value>0.351</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="red">
+              <value>0.68</value>
+              <value>0.30</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="green">
+              <value>0.21</value>
+              <value>0.69</value>
+        </dictitem>            
+
+        <dictitem type="doubleArray" name="blue">
+              <value>0.15</value>
+              <value>0.05</value>
+        </dictitem>            
+
+        <dictitem type="double" name="trcGamma"> 2.6</dictitem>
+        <dictitem type="double" name="trcA0">    0.0</dictitem>            
+        <dictitem type="double" name="trcA1">    1.0</dictitem>            
+        <dictitem type="double" name="trcA2">    0.0</dictitem>            
+        <dictitem type="double" name="trcA3">    0.0</dictitem>            
+        </dictitem>
+
+        <!-- Setup our MySENSOR sensor config -->
+        <dictitem type="string" name="MySENSOR::displayType">lcd</dictitem>
+        <dictitem type="double" name="MySENSOR::integrationTime">3.0</dictitem>
+        <dictitem type="int"    name="MySENSOR::calibrationIdx">1</dictitem>
+    </dict>
+
+    <!-- Define all the plugins that we want to have in the chain -->
+    <plugin>WxBasicGui</plugin>
+    <plugin>MySENSOR</plugin>
+    <plugin>WxSensorPrep</plugin>
+    <plugin>DreamColorCtrl</plugin>
+    <plugin>WxDreamColorCalib</plugin>
+    <plugin>DataSavior</plugin>
+    <plugin>CalibChecker</plugin>
+
+</chain>
+
+<!--
+=============================================================================
+=============================================================================
+-->
+
+</ucaldata>
+
+

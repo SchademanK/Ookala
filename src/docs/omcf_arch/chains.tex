@@ -1,0 +1,225 @@
+
+\section{Plugin Chains}
+\label{sec:Plugin Chains}
+
+In general, 
+we can divide common plugins into two groups - utilities and runnables.
+There isn't an explicit divide between the types of plugins, its
+more implicit based on which methods they override. In fact, a single
+plugin could fall into both categories.
+
+Utility plugins provide some service and can be used by a variety
+of other plugins. Examples of utility plugins include things like
+colorimeters or a DDC/CI connection. 
+
+Runnable plugins are those that ``do'' something, and can be grouped
+together into a chain with other plugins to run some task. The chain
+is then executed serially. Runnable plugins will make use of utility
+plugins, but generally not the other way around. An example of a 
+runnable plugin would be a calibration algorithm.
+
+For these runnable plugins, we have methods for dealing with the chain
+of execution. Utility plugins will probably not need to override these
+methods.
+
+\subsection{Grouping Runnable Plugins into Chains}
+
+The {\tt PluginChain} class provides a mechanism for grouping together
+runnable plugins into something useful. Each plugin chain has facilities
+for building a chain of plugins, accessing the plugins in the chain, 
+and storing dictionary data for the plugins to use.
+
+In general, you should not have to worry much about the details of
+building a {\tt PluginChain}, though you will likely make great use
+of its helper functionality. 
+
+Running a {\tt PluginChain} consists of a few passes over the list of
+plugins. First, the {\tt preRun()} method is called on each plugin.
+If this succeeds, we proceed to the next step of calling {\tt run()}
+on each plugin. Finally, {\tt postRun()} is called. {\tt postRun()}
+will always be called, regardless of the success of the {\tt preRun()} 
+and {\tt run()} steps.
+
+\subsection{Runnable Plugin Methods}
+
+Each of these methods has access to the {\tt PluginChain} from 
+which it is being executed. This affords the plugins two useful
+pieces: querying other plugins in the chain and canceling 
+the execution of the chain. 
+
+Querying other plugins is especially useful for finding a gui
+plugin to use. Gui plugins should be added to chains, as
+they are runnable (generally showing and hiding the display in 
+{\tt preRun()} and {\tt postRun()} respectively). The alternative
+would be to query the {\tt PluginRegistry} to find a gui plugin.
+However, there could potentially be multiple gui-providing plugins
+loaded at one time, and we would need some way of arbitration. 
+Instead, we include gui plugins in the chain, only including one
+gui plugin per chain. This way multiple chains can be constructed
+that have differing guis.
+
+Plugins in the chain have two methods available through the 
+{\tt PluginChain} dealing with canceling the execution of the
+chain. First, {\tt PluginChain::cancel()} will set the cancel
+flag and stop execution of further plugins in the chain. As 
+a plugin writer, you should call this if something fatal happens
+or if the user sends a cancel signal. Also, since plugins may 
+yield to the main gui loop to allow for handling events (e.g. 
+cancel-button clicks), {\tt PluginChain::wasCancelled()} should
+be tested occasionally to see if processing should be aborted.
+
+
+\begin{description}
+\item[] \
+\begin{lstlisting}[frame=single]
+virtual bool Plugin::preRun(PluginChain *chain)
+virtual bool Plugin::_preRun(PluginChain *chain)
+\end{lstlisting}
+
+Prior to running a chain, we should give nodes the opportunity
+to do any per-run things. Here we might put things like 
+showing a gui, connecting to gui signals, and so on. 
+
+{\tt preRun()} will be called when a plugin chain is run. Returning
+false will skip {\tt preRun()} for the remaining plugins in the chain,
+skip {\tt run()} for all plugins in the chain, but execute {\tt postRun()}
+for all plugins.
+
+
+\item[] \
+\begin{lstlisting}[frame=single]
+virtual bool Plugin::run(PluginChain *chain)
+virtual bool Plugin::_run(PluginChain *chain)
+\end{lstlisting}
+
+This would be the place to put the guts of what you want to do.
+It will probably query for other plugins, either from the registry
+or from the chain.
+
+Returning {\tt false} will skip {\tt run()} for the remaining plugins in the chain
+but still call postRun() on all plugins.
+
+\item[] \
+\begin{lstlisting}[frame=single]
+virtual bool Plugin::postRun(PluginChain *chain)
+virtual bool Plugin::_postRun(PluginChain *chain)
+\end{lstlisting}
+
+After a chain is run, we should give each plugin a chance to cleanup
+anyhthing that it might have setup. 
+
+\end{description}
+
+\subsection{Example Chain Functionality}
+
+As an example of what the various run-time methods may implement, 
+we outline a simple calibration process detailing what might 
+occur in each method.
+
+\begin{center}
+\begin{tabular}{rl}
+   preRun: & Gui opens         \\
+           & Colorimeter setup \\
+           & Colorimeter init  \\ \hline
+   run:    & Reset LUTs \\
+           & Calibration loop - display colors and measure \\
+           & Save calibration data \\
+           & Update LUTs \\ \hline
+   postRun:& Colorimeter shutdown\\
+           & Gui closes \\
+           & If canceled, reset state
+\end{tabular}
+\end{center}
+
+\subsection{Queries for Plugins in a Chain}
+
+Similar to the plugin query functionality in {\tt PluginRegistry}, we can
+also query plugins that live in a particular chain. This can be useful if 
+you wish to specify which plugins are used by other plugins, instead of
+relying on whatever we find in the {\tt PluginRegistry}.
+
+\begin{description}
+\item[] \
+\begin{lstlisting}[frame=single]
+ Plugin *     PluginChain::queryByName(const std::string name);
+ Plugin *     PluginChain::queryByAttribute(const std::string attrib);
+ Plugin *     PluginChain::queryByAttributes(
+                               const std::vector<std::string> attribs);
+       
+ bool PluginChain::queryByAttribute(const std::string attrib, 
+                         std::vector<Plugin *>&matches);
+ bool PluginChain::queryByAttributes(
+                         const std::vector<std::string> attribs, 
+                               std::vector<Plugin *>&matches);
+\end{lstlisting}
+\end{description}
+
+
+
+\subsection{Plugin Chain Gang}
+
+While chains of plugins are useful, we also need a way to keep track of
+all the chains, much the way plugins are tracked by {\tt PluginRegistry}.
+For this, we have the {\tt PluginChainGang} class. 
+
+{\tt PluginChainGang} is derived from {\tt Plugin}, so there should be
+only one instance per {\tt PluginRegistry}, and it is queryable through
+the {\tt PluginRegistry}.
+
+On load, {\tt PluginChainGang} loads up chain configurations specified 
+in a file. On disk, chains are stored something like:
+
+\lstset{language=XML,
+		columns=fixed,
+        showspaces=false,
+        showstringspaces=false,
+        basicstyle=\ttfamily,
+		backgroundcolor=\color{backGray}}
+\begin{lstlisting}[frame=single]
+ <chain>
+     <name>The Name Of the Chain</name>
+
+     <plugin>Plugin 0</plugin>
+     <plugin>Plugin 1</plugin>
+     <plugin>Plugin 2</plugin>
+
+     <dict>
+         <dictitem type="bool">
+             <name>option 0</name>
+             <value>true</value>
+         </dictitem>
+         ...
+     </dict>
+ </chain>
+\end{lstlisting}
+The list of plugins, in order of execution can be specified, as well as 
+as the configuration dictionary for the chain. Chains for which all plugins
+were loaded successfully are stored. Query methods are available to see
+the names of available chains. Run methods are available for starting
+execution of a particular chain, and a cancel method is available for 
+externally canceling the currently running chain.
+
+\subsubsection{Periodic Chain Execution}
+
+It is occasionally hand to have chains execution continuously at some
+specified interval. For example, implementing a status monitor that polls
+the current calibration state could be done this way. 
+
+To make a chain execution periodically, add a double value to the chain
+dictionary named ``period''. The value should be the execution interval
+in seconds. Note that if another chain is executing when the timer 
+expires, the period chain may not run.
+
+{\bf XXX: We still need to figure out where to specify the file that this
+data should be pulled from. Currently, it gets pulled from the string
+attribute ``Chain Config Files'' in the global dictionary.}
+
+{\bf XXX: We also need to add external chain addition methods.}
+
+{\bf XXX: It would be handy to include chains that are run when the
+          program kicks off}
+
+
+
+
+

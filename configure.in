@@ -1,0 +1,373 @@
+AC_INIT
+AM_INIT_AUTOMAKE(ookala, 0.6)
+
+AC_PROG_CC
+AC_PROG_CXX
+AC_PROG_RANLIB
+AC_DISABLE_STATIC
+AC_PROG_LIBTOOL
+AC_PROG_INSTALL
+
+CFLAGS="$CFLAGS -Wall -Werror"
+CXXFLAGS="$CXXFLAGS -Wall -Werror"
+
+dnl -------------------------------------------------
+dnl
+dnl   Setup SENSOR variable 
+dnl
+dnl   Note: only one X-Rite library can be active
+SENSOR_CFLAGS=""
+SENSOR_LIBS=""
+
+dnl -------------------------------------------------
+dnl
+dnl   Check for libUSB
+LIBUSB_LIBS=""
+AC_CHECK_LIB(usb, usb_bulk_write,[ LIBUSB_LIBS="$LIBUSB_LIBS -lusb"])
+AC_SUBST(LIBUSB_LIBS)
+
+dnl -------------------------------------------------
+dnl
+dnl   Check for X-Rite Chroma5 drivers
+dnl
+dnl   This requires libusb, at least under libusb platforms
+
+
+dnl AC_ARG_ENABLE([chroma5],
+dnl	AC_HELP_STRING([--disable-chroma5],
+dnl				   [Do not try and compile Chroma5 colorimeter support]),
+dnl				   [enable_chroma5=no],
+dnl				   [enable_chroma5=no])
+
+AC_ARG_WITH([chroma5],
+	[AS_HELP_STRING([--without-chroma5],
+	   		       [Do not try and compile Chroma5 colorimeter support])
+AS_HELP_STRING([--with-chroma5],
+	   		       [Compile Chroma5 colorimeter support])],
+	[],
+	[with_chroma5=no])
+
+dnl   Change "no" to "yes" if Chroma5 should be built by default and
+dnl   proper Chroma5 headers / libraries are installed and available.
+
+
+if test "$with_chroma5" = yes; then
+	CHROMA5_LIBS="$LIBUSB_LIBS"
+	chroma5_enabled="yes"
+	AC_ARG_WITH(chroma5-libs,
+		[AS_HELP_STRING([--with-chroma5-libs=PATH],
+					    [Path to Chroma5 libs (optional)])],
+		[CHROMA5_LIBS="-L$withval $LIBUSB_LIBS"])
+
+	TMP_LIBS="$LIBS"
+	AC_CHECK_LIB(sipec, sipOpenUSBChroma, 
+				[CHROMA5_LIBS="$CHROMA5_LIBS -lsipec"], 
+				[AC_MSG_ERROR([libspec not found!])], $CHROMA5_LIBS)
+	LIBS="$TMP_LIBS"
+
+	AC_SUBST(CHROMA5_LIBS)
+
+
+	CHROMA5_CFLAGS=" -DLINUX_KIT -DLINUX_DRIVER "
+	AC_ARG_WITH(chroma5-headers,
+		[AS_HELP_STRING([--with-chroma5-headers=PATH],
+					    [Path to Chroma5 headers (optional)])],
+		CHROMA5_CFLAGS="$CHROMA5_CFLAGS -I $withval")
+
+	AC_ARG_WITH(chroma5-extra-headers,
+		[AS_HELP_STRING([--with-chroma5-extra-headers=PATH],
+					    [Another Path to Chroma5 headers (optional)])],
+		CHROMA5_CFLAGS="$CHROMA5_CFLAGS -I $withval")
+
+
+	TMP_CPPFLAGS="$CPPFLAGS"
+	CPPFLAGS="$CPPFLAGS $CHROMA5_CFLAGS"
+	AC_CHECK_HEADER([Sipcal.h], [], [AC_MSG_ERROR([Chroma5 headers not found!])])
+	CPPFLAGS="$TMP_CPPFLAGS"
+	AC_SUBST(CHROMA5_CFLAGS)
+
+        SENSOR_CFLAGS="$CHROMA5_CFLAGS"
+        SENSOR_LIBS="$CHROMA5_LIBS"
+else
+	chroma5_enabled="no"
+fi
+
+AM_CONDITIONAL([CHROMA5_ENABLED], [test x$chroma5_enabled = xyes])
+echo "enabling Chroma5 support... $chroma5_enabled"
+
+dnl ---------------------------------------------------------
+dnl
+dnl   Check for X-Rite i1D2 drivers for HP DreamColor (HP-DC)
+dnl
+dnl   This requires libusb, at least under libusb platforms
+
+
+dnl AC_ARG_ENABLE([i1d2hpdc],
+dnl	AC_HELP_STRING([--disable-i1d2hpdc],
+dnl				   [Do not try and compile i1D2 (HP-DC) colorimeter support]),
+dnl				   [enable_i1D2_hpdc=no],
+dnl				   [enable_i1D2_hpdc=no])
+
+AC_ARG_WITH([i1d2hpdc],
+	[AS_HELP_STRING([--without-i1d2hpdc],
+	   		       [Do not try and compile i1D2 (HP-DC) colorimeter support])
+AS_HELP_STRING([--with-i1d2hpdc],
+	   		       [Compile i1D2 (HP-DC) colorimeter support])],
+	[],
+	[with_i1d2hpdc=no])
+
+dnl   Change "no" to "yes" if i1d2hpdc should be built by default and
+dnl   proper i1D2 Linux SDK headers / libraries are installed and available.
+
+
+if test "$with_i1d2hpdc" = yes; then
+
+dnl     Will need -lpthread for -li1C test later on
+
+	i1D2_HPDC_LIBS="$LIBUSB_LIBS -lpthread"
+	i1D2_hpdc_enabled="yes"
+	AC_ARG_WITH(i1d2hpdc-libs,
+		[AS_HELP_STRING([--with-i1d2hpdc-libs=PATH],
+					    [Path to i1D2 (HP-DC) libs (optional)])],
+		[i1D2_HPDC_LIBS="-L$withval $LIBUSB_LIBS -lpthread"])
+
+	TMP_LIBS="$LIBS"
+	AC_CHECK_LIB(i1C, I1_SetOption, 
+				[i1D2_HPDC_LIBS="$i1D2_HPDC_LIBS -li1C"], 
+				[AC_MSG_ERROR([libi1C not found!])], $i1D2_HPDC_LIBS)
+	LIBS="$TMP_LIBS"
+
+	AC_SUBST(i1D2_HPDC_LIBS)
+
+
+	i1D2_HPDC_CFLAGS=" -DLINUX_KIT -DLINUX_DRIVER "
+	AC_ARG_WITH(i1d2hpdc-headers,
+		[AS_HELP_STRING([--with-i1d2hpdc-headers=PATH],
+					    [Path to i1D2 (HP-DC) headers (optional)])],
+		i1D2_HPDC_CFLAGS="$i1D2_HPDC_CFLAGS -I $withval")
+
+	AC_ARG_WITH(i1d2hpdc-extra-headers,
+		[AS_HELP_STRING([--with-i1d2hpdc-extra-headers=PATH],
+					    [Another Path to i1D2 (HP-DC) headers (optional)])],
+		i1D2_HPDC_CFLAGS="$i1D2_HPDC_CFLAGS -I $withval")
+
+
+	TMP_CPPFLAGS="$CPPFLAGS"
+	CPPFLAGS="$CPPFLAGS $i1D2_HPDC_CFLAGS"
+	AC_CHECK_HEADER([EyeOne.h], [], [AC_MSG_ERROR([i1D2 (HP-DC) headers not found!])])
+	CPPFLAGS="$TMP_CPPFLAGS"
+	AC_SUBST(i1D2_HPDC_CFLAGS)
+
+        SENSOR_CFLAGS="$i1D2_HPDC_CFLAGS"
+        SENSOR_LIBS="$i1D2_HPDC_LIBS"
+else
+	i1D2_hpdc_enabled="no"
+fi
+
+AM_CONDITIONAL([i1D2_HPDC_ENABLED], [test x$i1D2_hpdc_enabled = xyes])
+echo "enabling i1D2 (HP-DC) support... $i1D2_hpdc_enabled"
+
+dnl ---------------------------------------------------------
+dnl
+dnl   Check for ExampleSensor (stub) driver
+dnl
+
+dnl AC_ARG_ENABLE([examplesensor],
+dnl	AC_HELP_STRING([--disable-examplesensor],
+dnl				   [Do not try and compile example sensor]),
+dnl				   [enable_example_sensor=no],
+dnl				   [enable_example_sensor=yes])
+
+AC_ARG_WITH([examplesensor],
+	[AS_HELP_STRING([--without-examplesensor],
+	   		       [Do not try and compile ExampleSensor (stub device) support])
+AS_HELP_STRING([--with-examplesensor],
+	   		       [Compile ExampleSensor device support])],
+	[],
+	[with_examplesensor=yes])
+
+dnl   Change "yes" to "no" if examplesensor should not be built by default.
+
+
+if test "$with_examplesensor" = yes; then
+	EXAMPLE_SENSOR_LIBS="$LIBUSB_LIBS"
+	example_sensor_enabled="yes"
+	AC_ARG_WITH(examplesensor-libs,
+		[AS_HELP_STRING([--with-examplesensor-libs=PATH],
+					    [Path to ExampleSensor (stub device) libs (optional)])],
+		[EXAMPLE_SENSOR_LIBS="-L$withval $LIBUSB_LIBS"])
+
+	AC_SUBST(EXAMPLE_SENSOR_LIBS)
+
+	EXAMPLE_SENSOR_CFLAGS=" -DLINUX_KIT -DLINUX_DRIVER "
+	AC_ARG_WITH(examplesensor-headers,
+		[AS_HELP_STRING([--with-examplesensor-headers=PATH],
+					    [Path to ExampleSensor headers (optional)])],
+		EXAMPLE_SENSOR_CFLAGS="$EXAMPLE_SENSOR_CFLAGS -I $withval")
+
+	AC_ARG_WITH(examplesensor-extra-headers,
+		[AS_HELP_STRING([--with-examplesensor-extra-headers=PATH],
+					    [Another Path to ExampleSensor headers (optional)])],
+		EXAMPLE_SENSOR_CFLAGS="$EXAMPLE_SENSOR_CFLAGS -I $withval")
+
+
+	AC_SUBST(EXAMPLE_SENSOR_CFLAGS)
+
+        SENSOR_CFLAGS="$EXAMPLE_SENSOR_CFLAGS"
+        SENSOR_LIBS="$EXAMPLE_LIBS"
+else
+	example_sensor_enabled="no"
+fi
+
+AM_CONDITIONAL([EXAMPLE_SENSOR_ENABLED], [test x$example_sensor_enabled = xyes])
+echo "enabling ExampleSensor [stub example] support... $example_sensor_enabled"
+
+dnl --------------------------------------------------
+dnl 
+dnl   Define SENSOR_CFLAGS and SENSOR_LIBS now
+
+SENSOR_CFLAGS="$CPPFLAGS $SENSOR_CFLAGS"
+SENSOR_LIBS="$LDFLAGS $SENSOR_LIBS"
+
+AC_SUBST(SENSOR_CFLAGS)
+AC_SUBST(SENSOR_LIBS)
+
+
+dnl --------------------------------------------------
+dnl
+dnl   Check for X11 components 
+AC_PATH_X
+
+X_CFLAGS="$X_CFLAGS"
+X_LIBS="$X_LIBS"
+
+if test "$x_includes" = NONE ; then
+	echo "no X includes defined [NONE]"
+	exit 1
+elif test -n "$x_includes" ; then
+	dnl ---- Add X11 include path ----
+	X_CFLAGS="$X_CFLAGS -I$x_includes"
+else
+	echo "no \$x_includes defined - X11 check may fail"
+fi
+
+if test "$x_libraries" = NONE ; then
+	echo "no X libraries defined [NONE]"
+	exit 1
+elif test -n "$x_libraries" ; then
+	dnl ---- Add X11 library path ----
+	X_LIBS="$X_LIBS -L$x_libraries"
+else
+	echo "no \$x_libraries defined - X11 check may fail"
+fi
+
+dnl AC_SEARCH_LIBS seems to pollute LIBS. push the values of LIBS
+TMP_LIBS="$LIBS"
+
+AC_SEARCH_LIBS(XOpenDisplay,  X11, [], [], $X_CFLAGS $X_LIBS)
+AC_SEARCH_LIBS(XCloseDisplay, X11, [], [], $X_CFLAGS $X_LIBS)
+
+AC_SEARCH_LIBS(XF86VidModeQueryExtension,   Xxf86vm, \
+			[have_libxxf86vm=yes], [have_libxxf86vm=no], $X_CFLAGS $X_LIBS -lX11)
+AC_SEARCH_LIBS(XF86VidModeGetGammaRampSize, Xxf86vm, \
+			[have_libxxf86vm=yes], [have_libxxf86vm=no], $X_CFLAGS $X_LIBS -lX11)
+AC_SEARCH_LIBS(XF86VidModeGetGammaRamp,     Xxf86vm, \
+			[have_libxxf86vm=yes], [have_libxxf86vm=no], $X_CFLAGS $X_LIBS -lX11)
+AC_SEARCH_LIBS(XF86VidModeSetGammaRamp,     Xxf86vm, \
+			[have_libxxf86vm=yes], [have_libxxf86vm=no], $X_CFLAGS $X_LIBS -lX11)
+
+dnl Pop LIBS to avoid pollution
+LIBS="$TMP_LIBS"
+
+if test $have_libxxf86vm = yes; then
+    X_XF86VIDMODE_LIBS="-lXxf86vm"
+else
+    X_XF86VIDMODE_LIBS=""
+fi
+
+AC_SUBST(X_CFLAGS)
+AC_SUBST(X_LIBS)
+AC_SUBST(X_XF86VIDMODE_LIBS)
+
+
+dnl --------------------------------------------------
+dnl
+dnl   Check for libxml-2 components
+
+PKG_CHECK_MODULES(LIBXML2, libxml-2.0)
+AC_SUBST(LIBXML2_CFLAGS)
+AC_SUBST(LIBXML2_LIBS)
+
+dnl --------------------------------------------------
+dnl
+dnl   Check for WxWidgets components
+
+AM_OPTIONS_WXCONFIG
+reqwx=2.8.0
+AM_PATH_WXCONFIG($reqwx, [wxWin=1], [wxWin=0], [gl,core,base])
+if test "$wxWin" != 1; then
+	AC_MSG_ERROR([
+		wxWidgets must be installed on your system.
+ 
+		Please check that wx-config is in path, the directory
+		where wxWidgets libraries are installed (returned by
+		'wx-config --libs' or 'wx-config --static --libs' command)
+		is in LD_LIBRARY_PATH or equivalent variable and
+		wxWidgets version is $reqwx or above.
+		])
+fi
+
+
+dnl --------------------------------------------------
+dnl
+dnl   4.x versions of GCC may emit fatal warning/errors about 
+dnl   dereferencing type-punned pointers (breaking strict-
+dnl   aliasing) when using wxWidgets libraries - the step 
+dnl   below may help but it involves disabling certain 
+dnl   type-checking of optimizations - use with caution
+
+AC_ARG_WITH([wx-gcc4],
+	AS_HELP_STRING([--with-wx-gcc4],
+   		       [Attempt wxWidgets + gcc4 compiler workaround]),
+	[with_wx_gcc4=yes],
+	[with_wx_gcc4=no])
+
+if test "$with_wx_gcc4" = yes; then
+	wx_gcc4_enabled="yes"
+        WX_CXXFLAGS="$WX_CXXFLAGS -fno-strict-aliasing"
+        AC_SUBST(WX_CXXFLAGS)
+else
+	wx_gcc4_enabled="no"
+fi
+
+AM_CONDITIONAL([WX_GCC4_ENABLED], [test x$wx_gcc4_enabled = xyes])
+echo "enabling WX + Gcc4 support... $wx_gcc4_enabled"
+
+dnl --------------------------------------------------
+dnl
+dnl   Generate Makefiles
+dnl
+dnl   If we're smart, we'd skip compilation of certain compents
+dnl   that we didn't find support for.. I think.
+
+
+AC_OUTPUT(Makefile                \
+          src/Makefile            \
+          src/apps/Makefile       \
+	  src/plugins/Makefile    \
+          src/libookala/Makefile  \
+          src/apps/hpdc_util/Makefile \
+          src/apps/ucal/Makefile \
+          src/apps/read_sensor/Makefile  \
+		  src/plugins/Chroma5/Makefile \
+		  src/plugins/DevI2c/Makefile \
+		  src/plugins/DreamColor/Makefile \
+		  src/plugins/i1D2HPDC/Makefile \
+		  src/plugins/WsLut/Makefile \
+		  src/plugins/WxBasicGui/Makefile \
+		  src/plugins/WxDreamColorCalib/Makefile \
+		  src/plugins/WxLutSweep/Makefile \
+		  src/plugins/WxSensorPrep/Makefile \
+		  src/plugins/ExampleSensor/Makefile \
+		  )
+

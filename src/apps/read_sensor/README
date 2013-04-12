@@ -1,0 +1,10 @@
+
+Change symbolic link for main.cpp to point at desired
+sensor example. Default is the dummy sensor, ExampleSensor.
+
+    rm main.cpp
+    ln -s main.cpp.Chroma5 main.cpp
+
+Also copy the desired automake makefile (.am) to the
+default to support the new build.
+

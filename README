@@ -1,0 +1,77 @@
+---------------------------------------------------------------------------
+$Id: README 135 2008-12-19 00:49:58Z omcf $
+---------------------------------------------------------------------------
+
+Ookala Modular Calibration Framework
+
+Copyright (c) 2008 Hewlett-Packard Development Company, L.P.
+
+Permission is hereby granted, free of charge, to any person obtaining 
+a copy of this software and associated documentation files (the "Software"), 
+to deal in the Software without restriction, including without limitation 
+the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+and/or sell copies of the Software, and to permit persons to whom the 
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included 
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS 
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+OTHER DEALINGS IN THE SOFTWARE.
+
+---------------------------------------------------------------------------
+
+Ookala Modular Calibration Framework [OMCF]
+
+Directory navigation is as follows:
+
+/ookala-mcf-VER
+  |
+  +-- configure.in                      # source to configure
+  |                                     #   aclocal; autoconf; automake;
+  |
+  +-- /doc
+  |   +-- OMCF-Overview-VER.pdf         # Technical reference overview
+  |   +-- omcf_arch.pdf                 # Internal OMCF architecture
+  |
+  +-- /icons
+  |
+  +-- /rpm
+  |   +-- ookala-mcf.spec               # RPM packaging script
+  | 
+  +-- /scripts
+  |   +-- omcf-init                     # i2c-dev init script 
+  |   +-- ookala_manual_build.sh        # Simple manual build script
+  |
+  +-- /src
+      +-- /apps
+      |   +-- /hpdc_util                # HP DreamColor cmd line dev tool
+      |   +-- /read_sensor              # libookala direct sensor example
+      |   +-- /ucal                     # OMCF color calibration app
+      |       +-- ucal.xml.sample       #   configuration/runtime template
+      |
+      +-- /docs
+      |   +-- omcf_arch                 # LaTex source 
+      |   +-- ...
+      |
+      +-- /libookala                    # Plugin, Dict, Registry, Sensor, 
+      |                                 #   DDC/CI, DataSavior, Types
+      |
+      +-- /plugins
+          +-- ExampleSensor             # Color Sensor plugin example
+          +-- Chroma5                   # X-Rite Chroma5 sensor example
+          +-- DreamColor                # HP DreamColor Display interface
+          +-- DevI2c                    # Basic I2C device interface
+          +-- WsLut                     # Workstation LUT modules
+          |
+          +-- WxBasicGui                # wxWidgets required
+          +-- WxDreamColorCalib         # wxWidgets required
+          +-- WxLutSweep                # wxWidgets required
+          +-- WxSensorPrep              # wxWidgets required
+
+

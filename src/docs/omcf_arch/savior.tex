@@ -1,0 +1,33 @@
+
+\section{Saving Data}
+
+Thus far, we have touched on configuration files for plugin chains.
+These files are read-only, as far as the application is concerned. 
+This then begs the question of how to persist data to disk. There
+are a variety of potentially interesting pieces to persist, such
+as the time of last calibration, display readings used to compute
+lookup tables, and so forth.
+
+Enter the {\tt DataSavior} plugin. This is just a dictionary with
+some associated file on disk that can be loaded and saved.  The
+dictionary can be accessed through {\tt DataSavior::mDict}.
+
+The on-disk files to use are configured through a vector of strings
+in the global dictionary named ``DataSavior Files''. File names
+can contain a {\bf \%s} which is substituted for the current 
+host name. Multiple files can be specified.
+
+On {\tt DataSavior::load()} and in {\tt DataSavior::\_postLoad()}, 
+the contents of the {\em newest} data file are read into the dictionary. 
+
+On {\tt DataSavior::save()}, the contents of the dictionary are 
+saved to {\em all} data files.
+
+This strategy was chosen to allow for storing data in multiple places
+for redundancy, should one of the locations not be available. For 
+example, one file could live on a networked file system while another
+lives on the local file system. Should the network be unavailable,
+we should still be able to save locally. Then, when loading, if
+the network was available, the local file would be chosen as it 
+has a later modification time.
+

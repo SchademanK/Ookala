@@ -1,0 +1,116 @@
+\section{Plugins and Guis}
+
+A rather important component is a gui. For monitor calibration,
+this is the place for displaying windows with big color patches
+for measurement. They also give a chance to provide the user 
+with feedback about what is going on in the calibration process.
+
+\subsection{\tt GuiBase}
+
+In order to make gui elements more independent from their users, 
+we have attempted to put virtual methods into a base class for 
+gui plugins, aptly named {\tt GuiBase}. 
+
+There are two pure-virtual methods, {\tt GuiBase::showUi()} and
+{\tt GuiBase::setMeasureColor()}. The former controls hiding and
+showing the main gui window, while the latter controls the 
+colored measurement patch.
+
+Assembling a gui base class allows plugins to query for a gui and
+not need to know its class. It doesn't discount the possibility, 
+however, of locking in a particular plugin to only work with 
+a particular gui (by querying by the gui plugin name). The typical
+way for a plugin to access the gui would be something like the
+following:
+
+\begin{lstlisting}[frame=single]
+ bool
+ MyPlugin::_run(PluginChain *chain) 
+ {
+     Plugin  *pi;
+     GuiBase *gui; 
+
+     // This should really be done earlier, in _preRun()
+     pi = chain->queryByAttribute("gui");
+     if (pi == NULL) {
+         return false;
+     }
+
+     // Make sure we really have a gui plugin
+     gui = dynamic_cast<GuiBase *>(pi);
+     if (gui == NULL) {
+         return false;
+     }
+
+     gui->setMeasureColor(255, 255, 255);
+ }
+\end{lstlisting}
+
+
+\subsection{Plugin Gui Methods}
+
+\begin{description}
+\item[] \
+\begin{lstlisting}[frame=single]
+ virtual bool Plugin::guiStart()
+ virtual bool Plugin::_guiStart()
+\end{lstlisting}
+
+This will be called when the App starts up. It should be the
+first place where out app pointer is value. Do any sort of
+GUI setup here (actually, do it in {\tt \_guiStart()})
+
+For example, our Gui-providing plugins would use this to
+setup their main windows, but not show them yet [that would
+be done through {\tt GuiBase::show()}].
+
+
+\item[] \
+\begin{lstlisting}[frame=single]
+ virtual bool Plugin::guiStop()
+ virtual bool Plugin::_guiStop()
+\end{lstlisting}
+
+This will be called when the app shuts down. Destroy any
+GUI elements that you created in {\tt guiStart()} (but put the
+code you write in {\tt \_guiStop()}).
+
+
+\item[] \
+\begin{lstlisting}[frame=single]
+ virtual bool Plugin::buildParamUi(wxSizer *sizer, PluginChain *chain)
+ virtual bool Plugin::_buildParamUi(wxSizer *sizer, PluginChain *chain)
+\end{lstlisting}
+
+This will be used to build a gui for manual parameter control.
+When this happens, it will loop over all the plugins in a chain,
+allowing them to add whatever widetry into a sizer (which is probably
+a wxWidgets vertical box).
+
+If you don't add any Gui components, return {\tt false}. Then we know
+to not display the window that is being build if it dones't have
+anything interesting in it.
+But, if you add something, return {\tt true}.
+ 
+{\tt buildParamUi} is called as part of a {\tt PluginChain} execution. 
+
+\item[] \
+\begin{lstlisting}[frame=single]
+ virtual bool Plugin::processEvents()
+\end{lstlisting}
+
+Since we are not spawning a separate thread for the gui main loop, we need
+to take care to handle events periodically to keep the gui from becoming
+unresponsive.  This method will enter into the wxWidgets main loop and 
+process whatever events are pending. Plugins that are going to run for 
+a while should periodically call this in order to handle events. Note that
+this may cause execution flow to travel elsewhere for a period.
+
+You probably do not want to override this method.
+
+
+\end{description}
+
+
+
+

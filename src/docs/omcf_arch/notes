@@ -1,0 +1,59 @@
+
+Work-in-Progress Notes
+
+--------------------------------------
+
+Plugin Registration
+ * PluginRegistry()
+ * Macros
+ * Registration time methods
+ * Registry queries
+
+Dict
+ * example usage with dictitem
+ * notes on derived class
+ * save and load
+
+Plugin Chains
+  * run time methods
+  * cancelling
+
+Plugin Chain Gang
+
+
+--------------------------------------
+
+Plugin Structure:
+ * plugin registration 
+ * registration functions
+ * plugin query'ing
+ * extendable functions
+
+Plugin Chains:
+ * plugin query'ing
+ * example chain for mon_calib2
+ * chain save and load
+
+Plugin IPC - dictionaries:
+ * dictionary save + load
+ * global dictionry in the plugin registry
+
+Parameter gathering:
+ * each pi builds its gui elements
+
+ * XXX: is this done in the chain before preRun()?
+
+Being tied into Wx:
+ * processEvents()
+
+plugin chain execution cancelling!
+
+
+Todo:
+  + plugin registration is hard-coaded.
+  + you can store derived classes in a dict, and
+     even save them, but there's no way to load them..
+
+  + No plugin version process
+
+

@@ -1,0 +1,47 @@
+\documentclass[10pt]{article}
+
+\usepackage{times}
+\usepackage{fullpage}
+\usepackage{listings}
+\usepackage{graphics}
+\usepackage{color}
+
+\title{An Introduction to the OMCF Architecture}
+\author{Hewlett-Packard Development Company, L.P.}
+\date{29 September 2008}
+
+\begin{document}         
+
+\maketitle
+
+\definecolor{backGray}{gray}{.8}
+\lstset{language=c++,
+		columns=fixed,
+        basicstyle=\ttfamily,
+        showspaces=false,
+        showstringspaces=false,
+		backgroundcolor=\color{backGray}}
+
+
+% Turn off indentation and add a natural line skip to paragraphs
+\parindent 0cm
+\addtolength{\parskip}{\baselineskip}
+
+
+\include{copyright}
+
+\include{introduction}
+
+\include{registration}
+
+\include{dict}
+
+\include{chains}
+
+\include{errors}
+
+\include{sensor}
+
+\include{savior}
+
+\end{document}

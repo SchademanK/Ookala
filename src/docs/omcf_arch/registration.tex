@@ -1,0 +1,273 @@
+
+\section{Plugin Registration}
+
+Essentially, we are building a plugin registration and
+query system - so it makes sense to touch on the plugin 
+registration process for a moment. Currently, registration 
+is handled by the {\tt PluginRegistry} class. This class maintains
+a list of plugin dsos, as well as object creation and deletion function
+pointers. 
+
+Currently, the plugin registry creates one instance of each 
+plugin object. This makes book-keeping much easier, as other plugins
+can query by name for a particular object. This does not, however, 
+mean that plugins are singletons. Its entirely possible to maintain
+multiple plugin registrys, each holding one distinct instance of
+each registered plugin object. Forcing the plugins to be singletons 
+at this point is overly oppressive for potential future expansion.
+
+Plugin loading is handled in {\tt PluginRegistry::registerPlugins()}. 
+This currently just takes a path to a module. A useful extension would
+be a 'load everything from this path' method, with some logic for
+re-loading to satisfy ordering constraints.
+
+\subsection{Steps for making a loadable plugin}
+
+As one might expect, to make a loadable plugin, we must create a 
+class derived from {\tt Plugin}. The {\tt Plugin} class contains no pure
+virtual methods, so if you are deriving straight from {\tt Plugin}, there
+should not be an necessary methods to implement (however, 
+other ``base'' classes may contain pure-virtual methods).
+
+In order to deal with symbol searching and name mangling in dynamic
+libraries, we need to jump through a few hoops. First, for each 
+plugin class declaration, we need to use the macro
+{\tt PLUGIN\_ALLOC\_FUNCS(className)}:
+ 
+\begin{lstlisting}[frame=single]
+    class foo: public Plugin
+    {
+        public:
+           foo();
+           virtual ~foo();
+
+           PLUGIN_ALLOC_FUNCS(foo)
+           ...
+    };
+\end{lstlisting}
+
+Next, for each dynamic library, we need to provide a list of the
+plugins contained within, that we wish to register.  This goes
+somewhere around the definition of the plugins:
+
+\begin{lstlisting}[frame=single]
+ BEGIN_PLUGIN_REGISTER(numPlugins)
+   PLUGIN_REGISTER(idx, pluginName)
+ END_PLUGIN_REGISTER
+\end{lstlisting}
+
+
+This allows us to put mutiple plugins into a single dynamic library, 
+for example:
+
+\begin{lstlisting}[frame=single]
+    class foo: public Plugin
+    {
+        public:
+            foo() {
+                mName.assign("foo");
+            }
+
+            virtual ~foo() {}
+
+            PLUGIN_ALLOC_FUNCS(foo)
+
+        protected:
+            virtual bool _postLoad();
+            virtual bool _checkDeps();
+    };
+    class bar: public Plugin
+    {
+        public:
+            bar() {
+                mName.assign("bar");
+
+                mAttributes.push_back("tonic");
+                mAttributes.push_back("olives");
+            }
+
+            virtual ~bar() {}
+
+            PLUGIN_ALLOC_FUNCS(bar)
+    };
+    BEGIN_PLUGIN_REGISTER(2)
+      PLUGIN_REGISTER(0, foo)
+      PLUGIN_REGISTER(1, bar)
+    END_PLUGIN_REGISTER 
+\end{lstlisting} 
+
+Which, when compiled into a dynamic library and loaded in {\tt PluginRegistry}
+will provide two plugins, {\tt foo} and {\tt bar}.
+
+
+
+\subsection{Plugin Queries}
+
+The {\tt PluginRegistry} class also provides a mechanism for querying
+plugins. Each plugin class has a name and a list of attributes. We
+can query either by name, a single attribute, or a list of attributes,
+and return a matching plugin. If multiple plugins are found to match,
+we will get one that satisfies our needs:
+
+\begin{lstlisting}[frame=single]
+ std::vector<Plugin *> PluginRegistry::queryByName(const std::string name)
+
+ std::vector<Plugin *> PluginRegistry::queryByAttribute(
+               const std::string attrib)
+
+ std::vector<Plugin *> PluginRegistry::queryByAttributes(
+               const std::vector<std::string> attribs)
+\end{lstlisting}
+
+Plugin names are assumed to never collide, so only multiple-matching
+queries by attributes are supported.
+
+The name and attributes of a plugin should be set in the constructor,
+by filling in strings 
+containing the name and supported attributes of the plugin in
+{\tt Plugin::setName()} and {\tt Plugin::addAttribute()} .
+
+
+\subsection{Accessing the Plugin Registry from a Plugin}
+
+Often, plugins will wish to make use of the the query methods in 
+{\tt PluginRegistry}. To enable this, {\tt Plugin} holds a pointer
+to the {\tt PluginRegistry} that holds the instance of the plugin. 
+
+The {\tt PluginRegistry} pointer is assigned during the plugin 
+loading and registration phase, after 
+{\tt Plugin:: postLoad()}
+executes.
+
+\subsection{Extending Plugin Methods}
+
+All the methods on {\tt Plugin} of interest follow this convention; The
+outward-facing method looks normal, while the ``guts'' of the
+method fall in the \_-prefixed version. This is done in cases where
+we need to control access to the ``guts'' or wrap them with
+more complicated logic.
+
+Generally, if you're creating derived plugin classes, you only 
+should have to worry about the \_-prefixed versions of these functions
+for implementing the bulk of the work.
+
+\subsubsection{Load-time methods}
+
+We have three methods that are related to plugin loading
+and inter-plugin dependency checking. They will be called
+in the {\tt PluginRegistry} class, after loading the dynamic 
+library containing the plugins. Returning {\tt false} to {\tt PluginRegistry}
+is a signal that the plugin should be unloaded and not accessible.
+
+\begin{description}
+\item[] \
+\begin{lstlisting}[frame=single]
+ virtual bool Plugin::postLoad()	
+ virtual bool Plugin::_postLoad()
+\end{lstlisting}
+
+After being loaded, a plugin should be given a chance to fail. This 
+would be useful for cases where the plugin supports a particular 
+device, but that device does not exist on the system. If this
+fails (returns {\tt false}), the plugin should be removed from the registry 
+so it cannot be queried and used elsewhere.
+
+{\tt postLoad()} is called from within {\tt PluginRegistry}, and is generally 
+not something you should ever have to call.
+
+{\tt postLoad()} is called {\em before} {\tt Plugin::mRegistry} is assigned.
+As such, you should never attempt to access any other plugins in {\tt postLoad()}
+or {\tt \_postLoad()}
+This is enforced because the plugin you want may not be loaded yet. If you
+need to check for other plugins, you should do so in {\tt checkDeps()}.
+
+\item[] \
+\begin{lstlisting}[frame=single]
+ virtual bool Plugin::checkDeps()
+ virtual bool Plugin::_checkDeps()
+\end{lstlisting}
+
+After loading all the plugins, and making sure that they really
+can work to some minimal degree, we should make sure that any 
+plugins that we rely on exist and are functioning properly.
+This will be called from within {\tt PluginRegistry}, after testing
+{\tt postLoad()} on all plugins. 
+
+If we return {\tt false} to a 
+{\tt PluginRegistry}, the plugin will be removed.
+For any plugins that we require to successfully run, we need
+to query the plugin registry ( {\tt Plugin::mRegistry} ) and call {\tt checkDeps()}
+on the returned plugin. Note that since this process can recurse,
+we should take care not to include anything that would cause problems
+when run recursivly.
+
+\item [] \ 
+\begin{lstlisting}[frame=single]
+ virtual bool Plugin::postCheckDeps()
+ virtual bool Plugin::_postCheckDeps()
+\end{lstlisting}
+
+The final method in the plugin loading routine. It will be run on
+every plugin loaded in {\tt PluginRegistry}.
+
+
+This can be handy for breaking cyclical dependencies that would be
+introduced if all checking for other plugin support was performed
+in {\tt checkDeps()}. However, it should not be though of as a replacement
+for {\tt checkDeps()} since it is not ment to recursely execute on dependencies.
+
+\end{description}
+
+\subsection{Example}
+
+Building upon our example declaration of two plugin classes in a dso,
+{\tt foo} and {\tt bar}, we will build up a few simple load-time checking 
+functions.
+
+\begin{lstlisting}[frame=single]
+ // _postLoad will check that the necessary doomsday dev
+ // is available. If we can't destroy the whole world, there
+ // is no use continuing.
+ bool foo::_postLoad() 
+ {
+     int      fd;
+     DictItem item;
+
+     fd = open("/dev/doomsday", O_RDWR);
+     if (fd < 0) {
+         perror("open():");
+         return false;
+     }
+     close(fd);
+     return true;
+ }
+
+ // The foo plugin requires both the doomsday dev and the
+ // the bar plugin for successful execution. We've checked
+ // for /dev/doomsday in _postLoad(), but now we need to 
+ // check for the bar plugin
+ bool foo::_checkDeps() 
+ { 
+     std::vector<Plugin *> plugins;
+     DictItem item;
+
+     // See if we can locate the plugin in the registry.
+     plugins = mRegistry->queryByName("bar");   
+     if (plugins.empty()) {
+         fprintf(stderr, 
+             "foo::_checkDeps() ERROR: Can't locate plugin bar\n");
+         return false;
+     }
+
+     // If it exists, we need to make sure that it also has its
+     // needs filled.
+     if (plugins[0]->checkDeps() == false) {
+         fprintf(stderr, 
+             "foo::_checkDeps() ERROR: Plugin bar failed checkDeps()\n");
+         return false;
+     }
+
+     return true;
+ }
+\end{lstlisting}
+

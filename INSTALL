@@ -1,0 +1,148 @@
+
+Ookala Modular Calibration Framework
+
+Copyright (c) 2008 Hewlett-Packard Development Company, L.P.
+
+Permission is hereby granted, free of charge, to any person obtaining 
+a copy of this software and associated documentation files (the "Software"), 
+to deal in the Software without restriction, including without limitation 
+the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+and/or sell copies of the Software, and to permit persons to whom the 
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included 
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS 
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+OTHER DEALINGS IN THE SOFTWARE.
+
+============================================================================
+
+The Ookala Modular Calibration Framework (OMCF) was initially developed and 
+tested on HP Workstations running Red Hat Enterprise Linux (RHEL). The
+software was developed for the following monitor types:
+
+  + HP DreamColor LP2480zw Professional Display
+
+For further Linux development, installation, and test, the following
+environment conditioning is required:
+
+
+_____________
+Prerequisites
+
+  + automake
+  + autoconf
+  + libtool
+  + pkgconfig
+
+  + i2c-dev - Linux user-space interface to I2C protocol used for
+              DDC/IC communications with HP DreamColor Professional Displays
+            - load as kernel module at runtime
+
+  + libusb - user-space access to USB devices (version 0.1.12 or later)
+    libusb-devel - development support
+            - interface used for color sensor communication
+      * http://sourceforge.net/projects/libusb
+
+  + wxWidgets - a cross-platform toolkit for GUI (version 2.8.8 or later)
+      * http://www.wxwidgets.org
+
+  + X-Rite - color measurement and management provider of technologies
+             such as i1(r)Display2 (eye-one) color sensors
+           - also provider of Sequel/Chroma5 color technologies
+             - example Chroma5 driver requires licensed code and
+               hardware compatible with SequelLinuxSDK7_1_0 (version 7.1.0) 
+               from X-Rite, Incorporated (Copyright (c) 2006 X-Rite, Inc.) 
+             - OMCF example Chroma5 plugin published with permission from 
+               X-Rite, Incorporated 
+      * http://www.xrite.com
+
+
+______________
+Build Scenario
+
+  1. A sample rpm-compatible spec file is included with this distribution.
+     If a customized installation is necessary, the following sample can 
+     be adapted for your environment.
+
+  2. Create target directories and populate with required components,
+     e.g., wxWidgets, 3rd party sensor headers/libraries, etc.
+
+     Ookala target directories to create:
+       * /usr/local/ookala/bin
+       * /usr/local/ookala/docs
+       * /usr/local/ookala/icons
+       * /usr/local/ookala/include
+       * /usr/local/ookala/lib[64]
+       * /usr/local/ookala/scripts
+
+     wxWidgets, 3rd-party sensor headers / libraries:
+       * /usr/local/bin
+       * /usr/local/include
+       * /usr/local/lib[64]
+
+     wxWidgets note: we configured and built with
+       configure --enable-monolithic --with-opengl --enable-shared --with-gtk
+
+  3. Update local copy of OMCF configuration script:
+
+     aclocal; autoconf; automake
+
+  4. Configure OMCF for build. Unique flags of interest include:
+
+     configure [OPTION]... [VAR=VALUE]...
+
+       * --x-includes                   # X11 includes location   
+                                          (if undefined $x_includes)
+       * --x-libraries                  # X11 library location   
+                                          (if undefined $x_libraries)
+       * --with-examplesensor           # ExampleSensor (dummy)
+       * --with-chroma5                 # X-Rite Chroma5 (requires X-Rite
+                                          licensed SDK and hardware)
+       * --with-i1d2hpdc                # HP i1D2 X-Rite sensor (requires
+                                          X-Rite licensed SDK)
+       * --with-wx-gcc4                 # GNU g++ compiler (v4.x or later)
+                                          needs help with wxWidgets
+
+     Note: Each plugin module option includes a --with-XXX-headers=PATH
+           and --with-XXX-libs=PATH option that is recommended for use
+           when configuring that build.  For example, examplesensor should
+           be configured with (note lib or lib64 choice):
+
+     ---with-examplesensor \
+     ---with-examplesensor-headers=/usr/local/ookala/include \
+     ---with-examplesensor-libs=/usr/local/ookala/lib   
+
+  5. build source via make command:
+
+     make
+
+  6. Install successful build via make command:
+
+     make install
+
+  7. Refresh dynamic library cache:
+
+     ldconfig /usr/local/lib
+     ldconfig /usr/local/ookala/lib[64]
+
+  8. Copy icons to target location from icons directory:
+
+     cp icons/* /usr/local/ookala/icons
+
+     Documentation and additional scripts can also be copied to
+     target directories as needed.
+ 
+____________
+More Details
+
+Complete development and runtime information available in the DOCS
+directory of this installation.
+
+

@@ -1,0 +1,52 @@
+__________________________________________
+X-Rite Chroma5 color sensor plugin example
+
+Chroma5  support for X-Rite Chroma5 sensor requires:
+
+  + X-Rite SequelLinuxSDK7_1_0 (version 7.1.0 or later) 
+
+    http://www.xrite.com
+
+  + This library employes Qt make (qmake) tools. When built
+    on 64-bit systems, QMAKE_CFLAGS / QMAKE_CXXFLAGS may 
+    require the -m64 architecture flag for proper results. 
+    (Try defining QMAKE_CFLAGS with the full definition
+    of QMAKE_CFLAGS_RELEASE flags - this seems to provide
+    the most reliable build of the support libraries across
+    tested systems.)
+    [/usr/lib64/qt-X.X/mkspecs/default/qmake.conf]
+
+  + After installed, the plugin can be configured for use with
+    ucal configuration scripts (ucal.xml):
+
+    32-bit builds:
+      <loadplugin>/usr/local/ookala/lib/libChroma5.so</loadplugin>
+
+    64-bit builds:
+      <loadplugin>/usr/local/ookala/lib64/libChroma5.so</loadplugin>
+    
+---------------------------------------------------------------------------
+
+Ookala Modular Calibration Framework
+
+Copyright (c) 2008 Hewlett-Packard Development Company, L.P.
+
+Permission is hereby granted, free of charge, to any person obtaining 
+a copy of this software and associated documentation files (the "Software"), 
+to deal in the Software without restriction, including without limitation 
+the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+and/or sell copies of the Software, and to permit persons to whom the 
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included 
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS 
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+OTHER DEALINGS IN THE SOFTWARE.
+
+

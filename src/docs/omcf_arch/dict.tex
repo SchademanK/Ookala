@@ -1,0 +1,190 @@
+
+\section{Dictionaries}
+
+Data storage is another topic that we should touch upon. We may 
+need a global ``configuration'' data space, that controls options
+for the entire program. Also, individual plugins may have configuration
+data that changes their behavior. Plugins may also need to record 
+some data for use by other plugins.
+
+Included is a dictionary class to satisfy these storage needs. Each
+entry has a name string and a data object. Dictionaries end up 
+being used in a variety of places. First, {\tt PluginRegistry} 
+holds a global dictionary that each plugin contained within can
+access. This is useful for global options, e.g. ``debug=true''. Further,
+each {\tt PluginChain} holds a dictionary for 
+per-chain configuration data (See Section \ref{sec:Plugin Chains}).
+
+Perhaps it is best to look at an example of the dictionary usage at this point:
+
+\begin{lstlisting}[frame=single]
+ Dict          d;
+ BoolDictItem *boolItem = new BoolDictItem;
+
+ boolItem->set(true);
+ d.set("debug", item);
+\end{lstlisting}
+
+Here, we see the separation between dictionary and data object.
+Data objects ({\tt DictItem}) are a bit of a tricky case. We could
+try and make them a variant class or a union, but that makes it
+difficult to extend. Further, there's an issue of ownership in
+the above example - who is supposed to free the DictItems?
+
+First, we'll deal with the ownership issue. Currently, allocation
+and deallocation of {\tt DictItem} classes should be done through
+the {\tt PluginRegistry}. Why there - because plugins may extend
+the {\tt DictItem} class. This requires the allocation to be done
+in the plugins, and since the {\\ PluginRegistry} is the only one 
+to know about plugin entry points, that's where the item allocation
+ends up.
+
+To be somewhat more correct, the previous example should look
+something more like:
+
+\begin{lstlisting}[frame=single]
+ void foo(PluginRegistry *registry) 
+ {
+   Dict          d(registry);
+   BoolDictItem *boolItem;
+
+   if (registry == NULL) return;
+
+   boolItem = registry->createDictItem("bool");
+
+   boolItem->set(true);
+   d.set("debug", item);
+ }
+\end{lstlisting}
+
+Here, we're allocating things appropriately. Also in this example, we
+need to inform a {\tt Dict} about the registry, so it can deallocate items
+that it's holding when the {\tt Dict} is destroyed.
+
+Currently, there is a small list of built-in data types:
+
+\begin{center}
+\begin{tabular}{l|l}
+Argument            & Data type \\ \hline
+{\tt "bool"}        & {\tt BoolDictItem}   \\ \hline
+{\tt "int"}         &  {\tt IntDictItem}     \\ \hline
+{\tt "double"}      &  {\tt DoubleDictItem}     \\ \hline
+{\tt "string"}      &  {\tt StringDictItem}     \\ \hline
+{\tt "blob"}        &  {\tt BlobDictItem}    \\ \hline
+{\tt "intArray"}    &  {\tt IntArrayDictItem}     \\ \hline
+{\tt "doubleArray"} &  {\tt DoubleArrayDictItem}     \\ \hline
+{\tt "stringArray"} &  {\tt StringArrayDictItem}     \\ \hline
+\end{tabular}
+\end{center}
+
+
+\subsection{Extending {\tt DictItem}}
+
+Plugins can create their own classes derived from {\tt DictItem} and expose
+them for others to use. This can be done in a similar manner to plugin 
+registration:
+
+\begin{lstlisting}[frame=single]
+ class MyDictItem: public DictItem
+ {
+    ...
+ };
+
+ class foo: public Plugin
+ {
+   foo();
+   virtual ~foo();
+
+   // NOTE: NO USE OF PLUGIN_ALLOC_FUNCS!
+
+   BEGIN_DICTITEM_ALLOC_FUNCS(foo)
+     DICTITEM_ALLOC("cool_item", MyDictItem)
+   END_DICTITEM_ALLOC_FUNCS
+   BEGIN_DICTITEM_DELETE_FUNCS
+     DICTITEM_DELETE("cool_item")
+   END_DICTITEM_DELETE_FUNCS
+ }
+
+\end{lstlisting}
+
+Here, "cool\_item" is the string to passed into {\tt PluginRegistry::createDictItem} and
+is also the string returned by {\tt MyDictItem::itemType()}.
+
+
+
+
+\subsection{Saving and Loading}
+
+Both the {\tt Dict} and {\tt DictItem} classes have serialization and unserialization
+methods that can be used to load and save data. In both cases, they make use of 
+the {\tt libxml2}. Data will be stored in a form:
+
+\lstset{language=XML,
+		columns=fixed,
+        showspaces=false,
+        showstringspaces=false,
+        basicstyle=\ttfamily,
+		backgroundcolor=\color{backGray}}
+\begin{lstlisting}[frame=single]
+ <dict name="Test Dict 1">
+     <dictitem type="bool" name="Debug">true</dictitem>
+
+     <dictitem type="double vector" name="measured white Yxy">
+         <value>80.012</value>
+         <value>0.3333</value>
+         <value>0.3333</value>
+     </dictitem>
+ </dict>
+\end{lstlisting}
+
+Saving a {\tt Dict} is fairly straightfoward, we just need the root node where
+we would like to insert the {\tt Dict}. For example:
+
+
+\subsection{Managing a {\tt Dict}}
+
+It would be nice if we were able to share {\tt Dict} data with everyone. 
+This way, plugins could communicate with one another, or with the
+outside world, by exchanging {\tt Dict}s. This is the motivation of the
+{\tt DictHash} plugin. It is a built-in plugin which should hold all 
+the {\tt Dict} objects that are created. It has a fairly simple interface:
+
+\lstset{language=c++,
+		columns=fixed,
+        basicstyle=\ttfamily,
+		backgroundcolor=\color{backGray}}
+
+
+\begin{description}
+\item[] \
+\begin{lstlisting}[frame=single]
+Dict * DictHash::newDict(std::string name);
+\end{lstlisting}
+This will create a new {\tt Dict} with the given name. If something already
+exists with this name, don't remove it, but rather just return a pointer.
+If we forget to name multiple {\tt Dict}s, we don't want to loose data
+by over-writing.
+
+\item[] \
+\begin{lstlisting}[frame=single]
+bool DictHash::clearDict(std::string name);
+\end{lstlisting}
+Remove a {\tt Dict} from our storage.
+
+\item[] \
+\begin{lstlisting}[frame=single]
+Dict * DictHash::getDict(std::string name);
+\end{lstlisting}
+Lookup a stored {\tt Dict}. Returns NULL if we don't have
+anything stored by that name. You shouldn't hold the pointer 
+that is returned, but instead re-query every time you 
+need the reference within reason.
+
+\item[] \
+\begin{lstlisting}[frame=single]
+std::vector<std::string> DictHash::getDictNames();
+\end{lstlisting}
+Return a vector of all the names of {\tt Dict}s that we hold.
+\end{description}
+
+

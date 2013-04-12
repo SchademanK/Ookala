@@ -1,0 +1,167 @@
+// --------------------------------------------------------------------------
+// $Id: main.cpp.i1D2HPDC 135 2008-12-19 00:49:58Z omcf $
+// --------------------------------------------------------------------------
+// Copyright (c) 2008 Hewlett-Packard Development Company, L.P.
+// 
+// Permission is hereby granted, free of charge, to any person obtaining 
+// a copy of this software and associated documentation files (the "Software"), 
+// to deal in the Software without restriction, including without limitation 
+// the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+// and/or sell copies of the Software, and to permit persons to whom the 
+// Software is furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included 
+// in all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS 
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+// THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
+// OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+// ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+// OTHER DEALINGS IN THE SOFTWARE.
+// --------------------------------------------------------------------------
+
+// read_sensor - color sensor development applet that demonstrates
+//               direct connection, configuration, and reading
+//               of an instrument through the libookala interface.
+
+// note - this module requires the i1D2HPDC plugin module and libi1C
+//        runtime libraries available from X-Rite, Inc.
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+#ifdef __linux__
+#include <unistd.h>
+#include <usb.h>
+#endif
+
+#include <Chrfuncs.h>
+
+#include "wx/wxprec.h"
+#ifdef __BORLANDC__
+    #pragma hdrstop
+#endif
+
+#ifndef WX_PRECOMP
+    #include "wx/wx.h"   
+#endif
+#include <wx/cmdline.h>
+
+#include "Dict.h"
+#include "DictHash.h"
+#include "PluginChain.h"
+#include "PluginRegistry.h"
+
+#include "plugins/i1D2HPDC/i1D2HPDC.h"
+
+
+void
+usage(int argc, char **argv)
+{
+    fprintf(stderr, "USAGE: %s <options> <plugin_path>\n", argv[0]);
+    fprintf(stderr, "\t-n N           Sample N measurements\n");     
+}
+
+void
+setupParser(wxCmdLineParser &parser)
+{
+    parser.AddParam("Path to plugin files");
+    parser.AddOption("n", wxEmptyString, "Switch to color space N");
+}
+
+int 
+main(int argc, char **argv)
+{
+    Ookala::PluginRegistry     reg;
+    Ookala::DictHash          *hash;
+    Ookala::Dict              *dict;
+    Ookala::IntDictItem       *intItem;
+    Ookala::StringDictItem    *stringItem;
+    Ookala::PluginChain       *chain;
+    Ookala::i1D2HPDC           *sensor;
+    Ookala::Yxy                Yxy;
+
+    int numReadings = 1;
+      
+    wxInitializer initializer;
+
+    wxString        argStr;
+    wxCmdLineParser parser;
+
+    parser.SetCmdLine(argc, argv);
+
+    setupParser(parser);
+
+    if (parser.Parse(false)) {
+        usage(argc, argv);
+        return 1;
+    }
+    else {
+        fprintf(stderr, "Compiled for sensor: i1D2HPDC\n");
+    }
+
+    if (parser.Found("n", &argStr)) {
+        numReadings = atoi(argStr.c_str());
+        if (numReadings < 1) numReadings = 1;
+    }
+ 
+    std::string pluginDir = (std::string)parser.GetParam();
+    std::string pluginPath;
+
+    pluginPath = pluginDir + std::string("/libi1D2HPDC.so");
+    if (!reg.loadPlugin(pluginPath.c_str())) {
+        fprintf(stderr, "Error loading %s\n", pluginPath.c_str());
+        return 1;
+    }
+
+
+    std::vector<Ookala::Plugin *> plugins = reg.queryByName("DictHash");
+    if (plugins.empty()) {
+        fprintf(stderr, "No DictHash found\n");
+        return 1;
+    }
+    hash = (Ookala::DictHash *)plugins[0];
+
+    // Setup options in a dict, and set the dict in a chain
+    dict = hash->newDict("i1D2HPDC Options");
+    
+    intItem = (Ookala::IntDictItem *)reg.createDictItem("int");
+    intItem->set(1);
+    dict->set("i1D2HPDC::calibrationIdx", intItem);
+
+    stringItem = (Ookala::StringDictItem *)reg.createDictItem("string");
+    stringItem->set("lcd");
+    dict->set("i1D2HPDC::displayType", stringItem);
+
+    chain = new Ookala::PluginChain(&reg);
+    chain->setDictName("i1D2HPDC Options");
+    
+  
+    plugins = reg.queryByName("i1D2HPDC");
+    if (plugins.empty()) {
+        fprintf(stderr, "No i1D2HPDC found\n");
+        return 1;
+    }
+
+    sensor = (Ookala::i1D2HPDC *)plugins[0];
+
+    sensor->actionTaken(SENSOR_ACTION_DETECT);
+
+    if (sensor->sensors().empty()) {
+        fprintf(stderr, "No devices found\n");
+        return 1;
+    }
+
+    for (int i=0; i<numReadings; ++i) {
+        sensor->measureYxy(Yxy, chain);
+
+        printf("%f %f %f\n", Yxy.Y, Yxy.x, Yxy.y);
+    }
+
+    return 0;
+}
+
+

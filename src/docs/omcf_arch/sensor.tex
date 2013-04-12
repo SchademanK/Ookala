@@ -1,0 +1,139 @@
+\section{Color Sensor Plugins}
+
+Simliar to the motivation for a base class for gui's, we also 
+have a base class for color probes. This way, a plugin that 
+needs color measurement capabilities can do so independently 
+of which probes are attached (and have appropriate plugins loaded).
+
+\subsection{\tt Sensor}
+
+Sensors may be spectrometers or colorimeters, or things of that nature.
+We've still named the 
+base class {\tt Sensor}, for ease of typing (But if you have 
+a better name - speak now!).
+
+{\tt Sensor} has three pure-virtual methods: 
+{\tt \_init()}, {\tt \_shutdown()}, and {\tt \_measureYxy()}
+
+\begin{description}
+
+\item[] \
+\begin{lstlisting}[frame=single]
+ virtual bool Sensor::init()
+ virtual bool Sensor::_init() = 0;
+\end{lstlisting}
+
+Most devices require some sort of one-time setup. We'll
+setup things such that if this hasn't happened by the 
+time we make our first measurement, we'll run {\tt init()}.
+
+{\tt init()} is different from {\tt postLoad()}. {\tt postLoad()}
+should
+just test for the existence of a device, and fail if one
+is not found. We need sometime between {\tt postLoad()} and
+the first time we measure where we can config the device.
+This could be done in {\tt postCheckDeps()}, but we still 
+need to allow for some configuration before starting up the 
+probe.
+
+
+\item[] \
+\begin{lstlisting}[frame=single]
+ virtual bool Sensor::shutdown()
+ virtual bool Sensor::_shutdown() = 0;
+\end{lstlisting}
+
+Does any one-time shutdown procedures needed to cleanup
+after the device.
+
+
+\item[] \
+\begin{lstlisting}[frame=single]
+ virtual bool Sensor::measureYxy(double *valueYxy)
+ virtual bool Sensor::_measureYxy(double *valueYxy) = 0;
+\end{lstlisting}
+
+Sample from a device to read a value. Results should
+come back as Yxy in the desired units. 
+
+Its a good practice to call {\tt init()} before {\tt measureYxy()},     
+as {\tt init()} may need to do its own measuring or manipulating
+of the display output. Failing to do so may be an error.
+
+The version you want to implement is {\tt \_measureYxy()}.
+
+{\tt measureYxy()} assumes that your {\tt \_measureYxy()} will block while
+it is reading. So, we'll start up a thread in {\tt measureYxy()} to call
+{\tt \_measureYxy()} and handle main loop events while we wait.
+
+
+\item[] \
+\begin{lstlisting}[frame=single]
+ virtual bool Sensor::setUnits(const std::string units)
+ const std::string Sensor::getUnits()
+\end{lstlisting}
+
+Set the desired measurement units. This should be done prior
+to {\tt init()}. Common options will include:
+\begin{itemize}
+     \item ``fL''              
+     \item ``cd/m\^\ 2'' or ``nits''
+\end{itemize}
+
+The parameters are strings to 
+avoid enum fighting from people wanting to use non-standard values.
+This does mean that you should be somewhat careful to check 
+return values.
+
+\item[] \
+\begin{lstlisting}[frame=single]
+ virtual bool Sensor::setDisplayTech(const std::string display)
+ const std::string Sensor::getDisplayTech()
+\end{lstlisting}
+
+Set the display technology. This should be done prior to
+{\tt init()}. Common options will include things like:
+\begin{itemize}
+    \item ``crt''
+    \item ``lcd''
+    \item ``led crt''
+    \item ``dcinema dlp''
+\end{itemize}
+
+The parameters are strings to 
+avoid enum fighting from people wanting to use non-standard values.
+This does mean that you should be somewhat careful to check 
+return values.
+
+\item[] \
+\begin{lstlisting}[frame=single]
+ bool Sensor::setIntegrationTime(const std::string length);
+ const std::string Sensor::getIntegrationTime();
+\end{lstlisting}
+
+Set the integration time, based on a category. If you have
+setup to measure a CRT and choose AUTO mode here, you should
+be prepared for the colorimeter to read the screen for
+refersh rates during {\tt init()}, which may require cranking 
+the luminance output of the display (which you should do
+prior to calling {\tt init()} since the colorimeter doesn't really
+know which display you are using).
+Common options will include:
+\begin{itemize}
+    \item ``auto''
+    \item ``fast''
+    \item ``slow''
+\end{itemize}
+
+The parameters are strings to 
+avoid enum fighting from people wanting to use non-standard values.
+This does mean that you should be somewhat careful to check 
+return values.
+
+\end{description}
+
+
+
+
+
+
