@@ -11,5 +11,6 @@ SUBDIRS =                    \
 		WxDreamColorCalib  \
 		WxLutSweep         \
 		WxSensorPrep       \
-		ExampleSensor
+		ExampleSensor      \
+		K10A
 

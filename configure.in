@@ -222,6 +222,61 @@ fi
 AM_CONDITIONAL([EXAMPLE_SENSOR_ENABLED], [test x$example_sensor_enabled = xyes])
 echo "enabling ExampleSensor [stub example] support... $example_sensor_enabled"
 
+dnl ---------------------------------------------------------
+dnl
+dnl   Check for K10A driver
+dnl
+
+dnl AC_ARG_ENABLE([k10a],
+dnl	AC_HELP_STRING([--disable-k10a],
+dnl				   [Do not try and compile K10A]),
+dnl				   [enable_k10a=no],
+dnl				   [enable_k10a=no])
+
+AC_ARG_WITH([k10a],
+	[AS_HELP_STRING([--without-k10a],
+	   		       [Do not try and compile K10A support])
+AS_HELP_STRING([--with-k10a],
+	   		       [Compile K10A device support])],
+	[],
+	[with_k10a=no])
+
+dnl   Change "no" to "yes" if K10A should be built by default.
+
+
+if test "$with_k10a" = yes; then
+	K10A_LIBS="$LIBUSB_LIBS"
+	k10a_enabled="yes"
+	AC_ARG_WITH(k10a-libs,
+		[AS_HELP_STRING([--with-k10a-libs=PATH],
+					    [Path to K10A libs (optional)])],
+		[K10A_LIBS="-L$withval"])
+
+	AC_SUBST(K10A_LIBS)
+
+	K10A_CFLAGS=" -DLINUX_KIT -DLINUX_DRIVER "
+	AC_ARG_WITH(k10a-headers,
+		[AS_HELP_STRING([--with-k10a-headers=PATH],
+					    [Path to K10A headers (optional)])],
+		K10A_CFLAGS="$K10A_CFLAGS -I $withval")
+
+	AC_ARG_WITH(k10a-extra-headers,
+		[AS_HELP_STRING([--with-k10a-extra-headers=PATH],
+					    [Another Path to K10A headers (optional)])],
+		K10A_CFLAGS="$K10A_CFLAGS -I $withval")
+
+
+	AC_SUBST(K10A_CFLAGS)
+
+        SENSOR_CFLAGS="$K10A_CFLAGS"
+        SENSOR_LIBS="$K10A_LIBS"
+else
+	example_sensor_enabled="no"
+fi
+
+AM_CONDITIONAL([K10A_ENABLED], [test x$k10a_enabled = xyes])
+echo "enabling K10A support... $k10a_enabled"
+
 dnl --------------------------------------------------
 dnl 
 dnl   Define SENSOR_CFLAGS and SENSOR_LIBS now
@@ -369,5 +424,6 @@ AC_OUTPUT(Makefile                \
 		  src/plugins/WxLutSweep/Makefile \
 		  src/plugins/WxSensorPrep/Makefile \
 		  src/plugins/ExampleSensor/Makefile \
+		  src/plugins/K10A/Makefile \
 		  )
 
