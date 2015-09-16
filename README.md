@@ -153,7 +153,7 @@ Find (should be two of them)
 replace
 ```bash
 <dictitem type="string" name="K10A::port">/dev/ttyUSB0</dictitem>     #Change it to port is ours
-<dictitem type="int" name="K10A::measurements">8</dictitem>           #Change how many number of measurements to average with
+<dictitem type="int"    name="K10A::measurements">8</dictitem>        #Change how many number of measurements to average with
 <dictitem type="int"    name="K10A::caliFileID">1</dictitem>          #Change the calfile the K10 needs to use
 ```
 
