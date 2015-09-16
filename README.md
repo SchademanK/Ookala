@@ -137,11 +137,11 @@ cp /usr/local/ookala/docs/ucal.xml.sample $HOME/.config/ucal/ucal.xml
 in the ucal.xml change these settings for the K10
 Find
 ```bash
-  <loadplugin>/usr/local/ookala/lib64/libMySENSOR.so</loadplugin>
+<loadplugin>/usr/local/ookala/lib64/libMySENSOR.so</loadplugin>
 ```
 replace
 ```bash
-  <loadplugin>/usr/local/ookala/lib64/libK10A.so</loadplugin>
+<loadplugin>/usr/local/ookala/lib64/libK10A.so</loadplugin>
 ```
 <br>
 Find (should be two of them)
