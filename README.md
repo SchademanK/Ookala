@@ -126,7 +126,6 @@ ldconfig /usr/local/ookala/lib[64]  #depending your your system
 #### System wide settings
 ```bash
 cp /usr/local/ookala/docs/ucal.xml.sample /etc/xdg/ucal/ucal.xml
-$HOME/.config/ucal/ucal.xml for personalize
 ```
 
 #### user settings
