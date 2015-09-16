@@ -208,7 +208,9 @@ SessionManage::smcSetupProperties()
 
     // SmCurrentDirectory
     char dir[4096];
-    getcwd(dir, 4095);
+    if(getcwd(dir, 4095) == 0) {
+        return false;
+    }
 
     props[5]                 = new SmProp;
     props[5]->name           = (char *) SmCurrentDirectory;

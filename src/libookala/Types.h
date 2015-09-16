@@ -25,6 +25,11 @@
 #ifndef TYPES_H_HAS_BEEN_INCLUDED
 #define TYPES_H_HAS_BEEN_INCLUDED
 
+#include <stdio.h>
+#include <stdint.h>
+#include <unistd.h>
+#include <iostream>
+
 // Until windows gets C99 complient.
 #ifdef _WIN32
 #include <windows.h>

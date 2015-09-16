@@ -1,7 +1,7 @@
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = @LIBXML2_CFLAGS@              \
+AM_CPPFLAGS = @LIBXML2_CFLAGS@              \
            @WX_CXXFLAGS@                 \
            @X_CFLAGS@                    \
            -I$(top_srcdir)/src/libookala \

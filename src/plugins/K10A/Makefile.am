@@ -1,10 +1,12 @@
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = @LIBXML2_CFLAGS@              \
+AUTOMAKE_OPTIONS = subdir-objects
+AM_CPPFLAGS = @LIBXML2_CFLAGS@              \
            @K10A_CFLAGS@              \
            -I$(top_srcdir)/src/libookala \
-           -I$(top_srcdir)/src      
+           -I$(top_srcdir)/src      \
+	   -Wno-unused-result
 
 
 AM_LDFLAGS  = @K10A_LIBS@ -L$(top_srcdir)/src/libookala 
@@ -24,8 +26,14 @@ libK10A_la_SOURCES = \
 	../../kclmtr/KClmtr.cpp		\
 	../../kclmtr/KClmtr.h		\
 	../../kclmtr/serialPort.cpp	\
-	../../kclmtr/serialPort.h
-
+	../../kclmtr/serialPort.h	\
+	../../kclmtr/Flicker.cpp	\
+	../../kclmtr/Flicker.h		\
+	../../kclmtr/Measurement.cpp	\
+	../../kclmtr/Measurement.h	\
+	../../kclmtr/matrix.h		\
+	../../kclmtr/ErrorCodes.h	
+	
 
 
 

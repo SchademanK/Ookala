@@ -1463,10 +1463,10 @@ Ookala::DreamColorCalib::backlightLoop(
         }
 
         // These should probably have better upper bounds?
-        if ((backlightReg[0] < 0) || (backlightReg[0] >  350) ||
+        if ((backlightReg[0] < 0) || (backlightReg[0] >  400) || //was 350
             (backlightReg[1] < 0) || (backlightReg[1] > 2000) ||
             (backlightReg[2] < 0) || (backlightReg[2] > 2000)) {
-            fprintf(stderr, "ERROR: Backlight registers out of range\n");
+            fprintf(stderr, "ERROR: Backlight registers out of range 0<%d<350 0<%d<2000 0<%d<2000\n", backlightReg[0], backlightReg[1], backlightReg[2]);
             setErrorString("Backlight registers out of range.");
             return false;
         }

@@ -27,8 +27,12 @@
 
 #ifdef __linux__
 
+
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <iostream>
 #include <pthread.h>
 
 #include <X11/SM/SMlib.h>

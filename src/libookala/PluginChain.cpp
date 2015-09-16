@@ -205,7 +205,7 @@ Ookala::PluginChain::getDict()
     DictHash *hash = NULL;
 
     if (!mPluginChainData) return NULL;
-    if (!mRegistry)        return false;
+    if (!mRegistry)        return NULL;
         
 
     std::vector<Plugin *>plugins = mRegistry->queryByName("DictHash");

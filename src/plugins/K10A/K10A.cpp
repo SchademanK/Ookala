@@ -63,41 +63,41 @@ bool errorCheck(int error) {
 	std::string stringError;
 
 	//Avergring, just needs to display it
-	error &= ~KClmtr::AVERAGING_LOW_LIGHT;
+	error &= ~AVERAGING_LOW_LIGHT;
 	//Resetting the FFT data
-	error &= ~KClmtr::FFT_PREVIOUS_RANGE;
+	error &= ~FFT_PREVIOUS_RANGE;
 	//The data isn't ready to display yet
-	error &= ~KClmtr::FFT_INSUFFICIENT_DATA;
+	error &= ~FFT_INSUFFICIENT_DATA;
 	if(false) {
-		error &= ~KClmtr::AIMING_LIGHTS;
+		error &= ~AIMING_LIGHTS;
 	}
 	if(true) {
-		error &= ~KClmtr::BOTTOM_UNDER_RANGE;
-		error &= ~KClmtr::TOP_OVER_RANGE;
-		error &= ~KClmtr::OVER_HIGH_RANGE;
+		error &= ~BOTTOM_UNDER_RANGE;
+		error &= ~TOP_OVER_RANGE;
+		error &= ~OVER_HIGH_RANGE;
 	}
 	if(error) {
-		if(error & KClmtr::CONVERTED_NM) {
+		if(error & CONVERTED_NM) {
 			if (stringError.length()>0) { stringError += ", "; }
 			stringError += "converting to NM failed";
 		}
-		if(error & KClmtr::KELVINS) {
+		if(error & KELVINS) {
 			if (stringError.length()>0) { stringError += ", "; }
 			stringError += "converting to Kelvins failed";
 		}
-		if(error & KClmtr::AIMING_LIGHTS) {
+		if(error & AIMING_LIGHTS) {
 			if (stringError.length()>0) { stringError += ", "; }
 			stringError += "the Aiming lights are on";
 		}
-		if(error & (KClmtr::BOTTOM_UNDER_RANGE | KClmtr::TOP_OVER_RANGE | KClmtr::OVER_HIGH_RANGE)) {
+		if(error & (BOTTOM_UNDER_RANGE | TOP_OVER_RANGE | OVER_HIGH_RANGE)) {
 			if (stringError.length()>0) { stringError += ", "; }
 			stringError +=  "out of range";
 		}
-		if(error & KClmtr::FFT_BAD_STRING) {
+		if(error & FFT_BAD_STRING) {
 			if (stringError.length()>0) { stringError += ", "; }
 			stringError += "the Flicker string from the Klein device was bad";
 		}
-		if(error & (KClmtr::NOT_OPEN | KClmtr::TIMED_OUT | KClmtr::LOST_CONNECTION)) {
+		if(error & (NOT_OPEN | TIMED_OUT | LOST_CONNECTION)) {
 			K->closePort();
 			if (stringError.length()>0) { stringError += ", "; }
 			stringError += "the the Klein device as been unplugged";
@@ -327,7 +327,7 @@ Ookala::K10A::getDictOptions(DictOptions &opts,
 	DictItem		*item		 = NULL;
 	StringDictItem	*stringItem	 = NULL;
 	IntDictItem		*intItem	 = NULL;
-	DoubleDictItem	*doubleItem	 = NULL;
+	//DoubleDictItem	*doubleItem	 = NULL;
 
 	opts.port			 = "";
 	opts.calFileID		 = 0;
